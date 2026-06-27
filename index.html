@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CrisTrial BioVault — Gene Editing & Clinical Research Platform</title>
+  <meta name="description" content="CrisTrial BioVault — Your free, open, powerful vault for CRISPR gene editing visualization and clinical trial discovery. Built for biotech students and researchers." />
+  <meta name="keywords" content="CRISPR visualizer, clinical trials, gene editing, biotech, CrisTrial, BioVault, guide RNA" />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            navy: {
+              900: '#08131E',
+              800: '#0D1B2A',
+              700: '#112233',
+              600: '#162840',
+            },
+            teal: {
+              400: '#00E5ED',
+              500: '#00C2CB',
+              600: '#00A8B0',
+            },
+          },
+          fontFamily: {
+            grotesk: ['Space Grotesk', 'sans-serif'],
+            inter: ['Inter', 'sans-serif'],
+          },
+          animation: {
+            'float': 'float 6s ease-in-out infinite',
+            'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            'glow': 'glow 2s ease-in-out infinite alternate',
+            'fade-in-up': 'fadeInUp 0.7s ease-out forwards',
+            'fade-in': 'fadeIn 1s ease-out forwards',
+            'slide-in-left': 'slideInLeft 0.7s ease-out forwards',
+            'slide-in-right': 'slideInRight 0.7s ease-out forwards',
+          },
+          keyframes: {
+            float: {
+              '0%, 100%': { transform: 'translateY(0)' },
+              '50%': { transform: 'translateY(-14px)' },
+            },
+            glow: {
+              '0%': { textShadow: '0 0 10px #00C2CB, 0 0 20px #00C2CB' },
+              '100%': { textShadow: '0 0 20px #00E5ED, 0 0 40px #00C2CB, 0 0 60px #00C2CB' },
+            },
+            fadeInUp: {
+              '0%': { opacity: '0', transform: 'translateY(30px)' },
+              '100%': { opacity: '1', transform: 'translateY(0)' },
+            },
+            fadeIn: {
+              '0%': { opacity: '0' },
+              '100%': { opacity: '1' },
+            },
+            slideInLeft: {
+              '0%': { opacity: '0', transform: 'translateX(-40px)' },
+              '100%': { opacity: '1', transform: 'translateX(0)' },
+            },
+            slideInRight: {
+              '0%': { opacity: '0', transform: 'translateX(40px)' },
+              '100%': { opacity: '1', transform: 'translateX(0)' },
+            },
+          },
+          backgroundImage: {
+            'hero-grid': "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%2300C2CB' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")",
+          },
+        },
+      },
+    }
+  </script>
+
+  <style>
+    * {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      background-color: #08131E;
+      font-family: 'Inter', sans-serif;
+      overflow-x: hidden;
+    }
+
+    /* Animated gradient border on cards */
+    .card-glow {
+      position: relative;
+      background: linear-gradient(135deg, #0D1B2A 0%, #112233 100%);
+      border: 1px solid rgba(0, 194, 203, 0.2);
+      transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+    }
+
+    .card-glow::before {
+      content: '';
+      position: absolute;
+      inset: -1px;
+      border-radius: inherit;
+      padding: 1px;
+      background: linear-gradient(135deg, transparent, rgba(0, 194, 203, 0.4), transparent);
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+    }
+
+    .card-glow:hover::before {
+      opacity: 1;
+    }
+
+    .card-glow:hover {
+      transform: translateY(-8px) scale(1.02);
+      border-color: rgba(0, 194, 203, 0.5);
+      box-shadow: 0 20px 60px rgba(0, 194, 203, 0.15), 0 8px 24px rgba(0, 0, 0, 0.4);
+    }
+
+    /* DNA Helix decoration */
+    .dna-strand {
+      background: linear-gradient(180deg, rgba(0,194,203,0.08) 0%, transparent 100%);
+    }
+
+    /* Teal glow button */
+    .btn-teal {
+      background: linear-gradient(135deg, #00C2CB, #00A8B0);
+      border: none;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .btn-teal::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      transition: width 0.5s, height 0.5s;
+    }
+
+    .btn-teal:hover::before {
+      width: 300px;
+      height: 300px;
+    }
+
+    .btn-teal:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 35px rgba(0, 194, 203, 0.45), 0 4px 15px rgba(0, 194, 203, 0.3);
+    }
+
+    .btn-teal:active {
+      transform: translateY(-1px);
+    }
+
+    /* Outline button */
+    .btn-outline {
+      background: transparent;
+      border: 1.5px solid rgba(0, 194, 203, 0.6);
+      color: #00C2CB;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .btn-outline::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, #00C2CB, #00A8B0);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .btn-outline:hover::before {
+      opacity: 1;
+    }
+
+    .btn-outline:hover {
+      color: #08131E;
+      transform: translateY(-3px);
+      box-shadow: 0 12px 35px rgba(0, 194, 203, 0.3);
+      border-color: #00C2CB;
+    }
+
+    .btn-outline span {
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Navbar glass effect */
+    .navbar-glass {
+      background: rgba(8, 19, 30, 0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(0, 194, 203, 0.1);
+    }
+
+    /* Stats bar */
+    .stat-item {
+      position: relative;
+    }
+
+    .stat-item::after {
+      content: '';
+      position: absolute;
+      right: 0;
+      top: 20%;
+      height: 60%;
+      width: 1px;
+      background: rgba(0, 194, 203, 0.2);
+    }
+
+    .stat-item:last-child::after {
+      display: none;
+    }
+
+    /* Hero particles */
+    .particle {
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(0, 194, 203, 0.15);
+      animation: float 6s ease-in-out infinite;
+    }
+
+    /* Hamburger menu animation */
+    .hamburger-line {
+      transition: all 0.3s ease;
+      transform-origin: center;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #08131E;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #00C2CB;
+      border-radius: 3px;
+    }
+
+    /* Mobile menu */
+    #mobile-menu {
+      transition: max-height 0.4s ease, opacity 0.4s ease;
+      max-height: 0;
+      opacity: 0;
+      overflow: hidden;
+    }
+
+    #mobile-menu.open {
+      max-height: 300px;
+      opacity: 1;
+    }
+
+    /* Intersection Observer fade-in */
+    .reveal {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 0.7s ease, transform 0.7s ease;
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .reveal-left {
+      opacity: 0;
+      transform: translateX(-40px);
+      transition: opacity 0.7s ease, transform 0.7s ease;
+    }
+
+    .reveal-left.visible {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    .reveal-right {
+      opacity: 0;
+      transform: translateX(40px);
+      transition: opacity 0.7s ease, transform 0.7s ease;
+    }
+
+    .reveal-right.visible {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    /* Teal text gradient */
+    .text-teal-gradient {
+      background: linear-gradient(135deg, #00E5ED, #00C2CB, #008B93);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* Helix background SVG */
+    .hero-bg {
+      background-color: #08131E;
+      background-image:
+        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(0, 194, 203, 0.12) 0%, transparent 70%),
+        url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none'%3E%3Cg fill='%2300C2CB' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    }
+
+    /* Nav link underline animation */
+    .nav-link {
+      position: relative;
+    }
+
+    .nav-link::after {
+      content: '';
+      position: absolute;
+      bottom: -4px;
+      left: 0;
+      width: 0;
+      height: 2px;
+      background: linear-gradient(90deg, #00C2CB, #00E5ED);
+      transition: width 0.3s ease;
+      border-radius: 2px;
+    }
+
+    .nav-link:hover::after {
+      width: 100%;
+    }
+
+    /* Icon glow on hover */
+    .icon-container {
+      transition: all 0.4s ease;
+    }
+
+    .card-glow:hover .icon-container {
+      box-shadow: 0 0 30px rgba(0, 194, 203, 0.4);
+      transform: scale(1.1);
+    }
+
+    /* Badge glow */
+    .badge-teal {
+      box-shadow: 0 0 12px rgba(0, 194, 203, 0.35);
+    }
+  </style>
+</head>
+
+<body class="bg-navy-900 text-white font-inter">
+
+  <!-- ============================================================
+       NAVBAR
+  ============================================================ -->
+  <nav id="navbar" class="navbar-glass fixed top-0 left-0 right-0 z-50 w-full">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16 md:h-20">
+
+        <!-- Logo -->
+        <a href="index.html" id="logo" class="flex items-center gap-2 group" aria-label="CrisTrial BioVault Home">
+          <!-- DNA Icon -->
+          <div class="relative w-9 h-9 flex items-center justify-center">
+            <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-9 h-9">
+              <circle cx="18" cy="18" r="17" stroke="#00C2CB" stroke-width="1.5" stroke-dasharray="3 2" opacity="0.5"/>
+              <path d="M11 8 C11 8, 25 12, 25 18 C25 24, 11 28, 11 28" stroke="#00C2CB" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+              <path d="M25 8 C25 8, 11 12, 11 18 C11 24, 25 28, 25 28" stroke="#00E5ED" stroke-width="2.2" stroke-linecap="round" fill="none" opacity="0.7"/>
+              <line x1="12.5" y1="12.5" x2="23.5" y2="14.5" stroke="#00C2CB" stroke-width="1.5" opacity="0.6"/>
+              <line x1="12.5" y1="18" x2="23.5" y2="18" stroke="#00C2CB" stroke-width="1.5" opacity="0.8"/>
+              <line x1="12.5" y1="23.5" x2="23.5" y2="21.5" stroke="#00C2CB" stroke-width="1.5" opacity="0.6"/>
+            </svg>
+          </div>
+
+          <!-- Logo Text -->
+          <span class="font-grotesk font-bold text-lg md:text-xl leading-tight">
+            <span class="text-teal-gradient">CrisTrial</span>
+            <span class="text-white ml-1">BioVault</span>
+          </span>
+        </a>
+
+        <!-- Desktop Nav Links -->
+        <div class="hidden md:flex items-center gap-8">
+          <a href="index.html" id="nav-home" class="nav-link text-sm font-medium text-white/80 hover:text-teal-500 transition-colors duration-200 font-inter">Home</a>
+          <a href="crispr.html" id="nav-crispr" class="nav-link text-sm font-medium text-white/80 hover:text-teal-500 transition-colors duration-200 font-inter">CRISPR Visualizer</a>
+          <a href="trials.html" id="nav-trials" class="nav-link text-sm font-medium text-white/80 hover:text-teal-500 transition-colors duration-200 font-inter">Clinical Trials</a>
+        </div>
+
+        <!-- CTA Button (Desktop) -->
+        <div class="hidden md:flex items-center">
+          <a href="crispr.html" id="nav-cta" class="btn-teal inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-navy-900 font-semibold text-sm font-grotesk transition-all duration-300">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+            </svg>
+            Launch Tool
+          </a>
+        </div>
+
+        <!-- Mobile Hamburger -->
+        <button id="hamburger-btn" class="md:hidden flex flex-col items-center justify-center w-10 h-10 gap-1.5 rounded-lg hover:bg-white/5 transition-colors" aria-label="Toggle menu">
+          <span id="ham-line-1" class="hamburger-line block w-6 h-0.5 bg-white rounded-full"></span>
+          <span id="ham-line-2" class="hamburger-line block w-6 h-0.5 bg-white rounded-full"></span>
+          <span id="ham-line-3" class="hamburger-line block w-4 h-0.5 bg-white/60 rounded-full self-end"></span>
+        </button>
+      </div>
+
+      <!-- Mobile Menu -->
+      <div id="mobile-menu" class="md:hidden border-t border-white/5">
+        <div class="py-4 flex flex-col gap-1">
+          <a href="index.html" class="text-white/80 hover:text-teal-500 hover:bg-white/5 px-4 py-3 rounded-lg transition-all duration-200 font-medium">Home</a>
+          <a href="crispr.html" class="text-white/80 hover:text-teal-500 hover:bg-white/5 px-4 py-3 rounded-lg transition-all duration-200 font-medium">CRISPR Visualizer</a>
+          <a href="trials.html" class="text-white/80 hover:text-teal-500 hover:bg-white/5 px-4 py-3 rounded-lg transition-all duration-200 font-medium">Clinical Trials</a>
+          <div class="px-4 pt-2">
+            <a href="crispr.html" class="btn-teal flex items-center justify-center gap-2 w-full py-3 rounded-xl text-navy-900 font-semibold text-sm font-grotesk">
+              🚀 Launch Tool
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+
+  <!-- ============================================================
+       HERO SECTION
+  ============================================================ -->
+  <section id="hero" class="hero-bg relative min-h-screen flex items-center pt-20 overflow-hidden">
+
+    <!-- Floating Particles -->
+    <div aria-hidden="true" class="absolute inset-0 pointer-events-none overflow-hidden">
+      <!-- Large glow orb top right -->
+      <div class="absolute -top-40 -right-40 w-96 h-96 rounded-full" style="background: radial-gradient(circle, rgba(0,194,203,0.08) 0%, transparent 70%);"></div>
+      <!-- Large glow orb bottom left -->
+      <div class="absolute -bottom-40 -left-40 w-80 h-80 rounded-full" style="background: radial-gradient(circle, rgba(0,194,203,0.06) 0%, transparent 70%);"></div>
+
+      <!-- Floating particles -->
+      <div class="particle w-3 h-3" style="top:15%; left:10%; animation-delay:0s; animation-duration:7s;"></div>
+      <div class="particle w-2 h-2" style="top:25%; left:85%; animation-delay:1s; animation-duration:5s; background:rgba(0,229,237,0.2);"></div>
+      <div class="particle w-4 h-4" style="top:60%; left:5%; animation-delay:2s; animation-duration:8s;"></div>
+      <div class="particle w-2 h-2" style="top:70%; left:90%; animation-delay:0.5s; animation-duration:6s;"></div>
+      <div class="particle w-3 h-3" style="top:40%; left:92%; animation-delay:3s; animation-duration:7s;"></div>
+      <div class="particle w-2 h-2" style="top:80%; left:50%; animation-delay:1.5s; animation-duration:9s;"></div>
+
+      <!-- Animated DNA helix SVG (right side, large) -->
+      <div class="hidden lg:block absolute right-16 top-1/2 -translate-y-1/2 opacity-30 animate-float" style="animation-duration:8s;">
+        <svg width="160" height="320" viewBox="0 0 160 320" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M40 20 C40 20, 120 55, 120 80 C120 105, 40 140, 40 160 C40 180, 120 215, 120 240 C120 265, 40 300, 40 300" stroke="#00C2CB" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+          <path d="M120 20 C120 20, 40 55, 40 80 C40 105, 120 140, 120 160 C120 180, 40 215, 40 240 C40 265, 120 300, 120 300" stroke="#00E5ED" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.7"/>
+          <!-- rungs -->
+          <line x1="43" y1="38" x2="117" y2="52" stroke="#00C2CB" stroke-width="1.5" opacity="0.5"/>
+          <line x1="43" y1="72" x2="117" y2="72" stroke="#00C2CB" stroke-width="1.5" opacity="0.7"/>
+          <line x1="43" y1="105" x2="117" y2="91" stroke="#00C2CB" stroke-width="1.5" opacity="0.5"/>
+          <line x1="43" y1="160" x2="117" y2="160" stroke="#00C2CB" stroke-width="1.5" opacity="0.8"/>
+          <line x1="43" y1="198" x2="117" y2="212" stroke="#00C2CB" stroke-width="1.5" opacity="0.5"/>
+          <line x1="43" y1="240" x2="117" y2="240" stroke="#00C2CB" stroke-width="1.5" opacity="0.7"/>
+          <line x1="43" y1="276" x2="117" y2="262" stroke="#00C2CB" stroke-width="1.5" opacity="0.5"/>
+          <!-- dots at nodes -->
+          <circle cx="40" cy="80" r="4" fill="#00C2CB" opacity="0.8"/>
+          <circle cx="120" cy="80" r="4" fill="#00E5ED" opacity="0.8"/>
+          <circle cx="40" cy="160" r="4" fill="#00C2CB" opacity="0.8"/>
+          <circle cx="120" cy="160" r="4" fill="#00E5ED" opacity="0.8"/>
+          <circle cx="40" cy="240" r="4" fill="#00C2CB" opacity="0.8"/>
+          <circle cx="120" cy="240" r="4" fill="#00E5ED" opacity="0.8"/>
+        </svg>
+      </div>
+
+      <!-- Small DNA helix (left side) -->
+      <div class="hidden xl:block absolute left-10 bottom-32 opacity-15 animate-float" style="animation-duration:10s; animation-delay:2s;">
+        <svg width="80" height="160" viewBox="0 0 80 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M20 10 C20 10, 60 27.5, 60 40 C60 52.5, 20 70, 20 80 C20 90, 60 107.5, 60 120 C60 132.5, 20 150, 20 150" stroke="#00C2CB" stroke-width="2" stroke-linecap="round" fill="none"/>
+          <path d="M60 10 C60 10, 20 27.5, 20 40 C20 52.5, 60 70, 60 80 C60 90, 20 107.5, 20 120 C20 132.5, 60 150, 60 150" stroke="#00E5ED" stroke-width="2" stroke-linecap="round" fill="none"/>
+          <line x1="21" y1="19" x2="59" y2="26" stroke="#00C2CB" stroke-width="1.2" opacity="0.5"/>
+          <line x1="21" y1="36" x2="59" y2="36" stroke="#00C2CB" stroke-width="1.2" opacity="0.7"/>
+          <line x1="21" y1="80" x2="59" y2="80" stroke="#00C2CB" stroke-width="1.2" opacity="0.8"/>
+          <line x1="21" y1="120" x2="59" y2="120" stroke="#00C2CB" stroke-width="1.2" opacity="0.7"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Hero Content -->
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-28">
+      <div class="max-w-3xl">
+
+        <!-- Badge -->
+        <div class="reveal inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-teal-500/30 bg-teal-500/10 badge-teal mb-8" style="transition-delay:0.1s;">
+          <span class="w-2 h-2 rounded-full bg-teal-500 animate-pulse-slow"></span>
+          <span class="text-teal-400 text-xs font-semibold tracking-widest uppercase font-grotesk">Open Source · Free Forever</span>
+        </div>
+
+        <!-- Headline -->
+        <h1 class="reveal font-grotesk font-bold text-4xl sm:text-5xl md:text-6xl lg:text-7xl leading-tight mb-6" style="transition-delay:0.2s;">
+          Your Vault for<br/>
+          <span class="text-teal-gradient">Gene Editing</span><br/>
+          <span class="text-white">&amp; Clinical Research</span>
+        </h1>
+
+        <!-- Subtext -->
+        <p class="reveal text-white/60 text-lg md:text-xl font-light mb-3 max-w-xl" style="transition-delay:0.3s;">
+          Explore CRISPR guide RNAs, discover clinical trials worldwide — all in one platform.
+        </p>
+        <p class="reveal font-grotesk font-semibold text-xl md:text-2xl text-teal-400 mb-10 tracking-wide" style="transition-delay:0.35s;">
+          Free. Open. Powerful.
+        </p>
+
+        <!-- CTA Buttons -->
+        <div class="reveal flex flex-col sm:flex-row gap-4" style="transition-delay:0.45s;">
+          <a href="crispr.html" id="hero-cta-crispr" class="btn-teal inline-flex items-center justify-center gap-3 px-8 py-4 rounded-2xl text-navy-900 font-bold text-base font-grotesk">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+            </svg>
+            Try CRISPR Visualizer
+          </a>
+
+          <a href="trials.html" id="hero-cta-trials" class="btn-outline inline-flex items-center justify-center gap-3 px-8 py-4 rounded-2xl font-bold text-base font-grotesk">
+            <span class="inline-flex items-center gap-3">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              Find Clinical Trials
+            </span>
+          </a>
+        </div>
+
+        <!-- Scroll indicator -->
+        <div class="reveal mt-16 flex items-center gap-3 text-white/30 text-sm" style="transition-delay:0.6s;">
+          <div class="flex flex-col items-center gap-1 animate-bounce">
+            <div class="w-0.5 h-6 bg-gradient-to-b from-teal-500/50 to-transparent rounded-full"></div>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+          </div>
+          <span class="font-inter text-xs">Scroll to explore</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ============================================================
+       STATS BAR
+  ============================================================ -->
+  <section id="stats" class="relative z-10 py-6">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="reveal rounded-2xl border border-teal-500/20 overflow-hidden" style="background: linear-gradient(135deg, rgba(13,27,42,0.95), rgba(17,34,51,0.95)); backdrop-filter: blur(10px);">
+        <div class="grid grid-cols-2 md:grid-cols-4">
+
+          <!-- Stat 1 -->
+          <div class="stat-item flex flex-col items-center justify-center py-7 px-4 text-center group cursor-default hover:bg-teal-500/5 transition-colors duration-300">
+            <span class="font-grotesk font-bold text-2xl md:text-3xl text-teal-gradient mb-1">500,000+</span>
+            <span class="text-white/50 text-xs md:text-sm font-medium tracking-wide">Trials Indexed</span>
+          </div>
+
+          <!-- Stat 2 -->
+          <div class="stat-item flex flex-col items-center justify-center py-7 px-4 text-center group cursor-default hover:bg-teal-500/5 transition-colors duration-300">
+            <span class="font-grotesk font-bold text-2xl md:text-3xl text-teal-gradient mb-1">Free Forever</span>
+            <span class="text-white/50 text-xs md:text-sm font-medium tracking-wide">No Cost, Ever</span>
+          </div>
+
+          <!-- Stat 3 -->
+          <div class="stat-item flex flex-col items-center justify-center py-7 px-4 text-center group cursor-default hover:bg-teal-500/5 transition-colors duration-300">
+            <span class="font-grotesk font-bold text-2xl md:text-3xl text-teal-gradient mb-1">No Login</span>
+            <span class="text-white/50 text-xs md:text-sm font-medium tracking-wide">Needed</span>
+          </div>
+
+          <!-- Stat 4 -->
+          <div class="stat-item flex flex-col items-center justify-center py-7 px-4 text-center group cursor-default hover:bg-teal-500/5 transition-colors duration-300">
+            <span class="font-grotesk font-bold text-2xl md:text-3xl text-teal-gradient mb-1">Gov. Data</span>
+            <span class="text-white/50 text-xs md:text-sm font-medium tracking-wide">Real Government Data</span>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ============================================================
+       FEATURE CARDS
+  ============================================================ -->
+  <section id="features" class="py-20 md:py-28">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+      <!-- Section header -->
+      <div class="text-center mb-16 reveal">
+        <span class="inline-block text-teal-500 text-xs font-bold tracking-widest uppercase mb-4 font-grotesk">Explore Our Tools</span>
+        <h2 class="font-grotesk font-bold text-3xl md:text-4xl lg:text-5xl text-white mb-4">
+          Two Powerful Tools,<br/><span class="text-teal-gradient">One Platform</span>
+        </h2>
+        <p class="text-white/50 text-base md:text-lg max-w-2xl mx-auto">
+          Built for biotech students, researchers, and curious minds. No signup. No cost. Just science.
+        </p>
+      </div>
+
+      <!-- Cards Grid -->
+      <div class="grid md:grid-cols-2 gap-6 lg:gap-8">
+
+        <!-- Card 1: CRISPR Visualizer -->
+        <a href="crispr.html" id="card-crispr" class="card-glow rounded-2xl p-8 md:p-10 block group focus:outline-none focus:ring-2 focus:ring-teal-500/50" role="article">
+
+          <!-- Icon -->
+          <div class="icon-container w-16 h-16 rounded-2xl flex items-center justify-center mb-7" style="background: linear-gradient(135deg, rgba(0,194,203,0.15), rgba(0,194,203,0.05)); border: 1px solid rgba(0,194,203,0.25);">
+            <!-- DNA Icon -->
+            <svg class="w-9 h-9" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 5 C12 5, 28 10, 28 14 C28 18, 12 22, 12 26 C12 30, 28 35, 28 35" stroke="#00C2CB" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+              <path d="M28 5 C28 5, 12 10, 12 14 C12 18, 28 22, 28 26 C28 30, 12 35, 12 35" stroke="#00E5ED" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.6"/>
+              <line x1="13" y1="9" x2="27" y2="11" stroke="#00C2CB" stroke-width="1.8" opacity="0.7"/>
+              <line x1="13" y1="14" x2="27" y2="14" stroke="#00C2CB" stroke-width="1.8" opacity="0.9"/>
+              <line x1="13" y1="26" x2="27" y2="26" stroke="#00C2CB" stroke-width="1.8" opacity="0.9"/>
+              <line x1="13" y1="31" x2="27" y2="29" stroke="#00C2CB" stroke-width="1.8" opacity="0.7"/>
+              <circle cx="12" cy="14" r="2" fill="#00C2CB"/>
+              <circle cx="28" cy="14" r="2" fill="#00E5ED"/>
+              <circle cx="12" cy="26" r="2" fill="#00C2CB"/>
+              <circle cx="28" cy="26" r="2" fill="#00E5ED"/>
+            </svg>
+          </div>
+
+          <!-- Tag -->
+          <div class="flex items-center gap-2 mb-4">
+            <span class="px-3 py-1 text-xs font-bold rounded-full font-grotesk tracking-wider" style="background:rgba(0,194,203,0.12); color:#00C2CB; border:1px solid rgba(0,194,203,0.25);">CRISPR TOOL</span>
+            <span class="text-white/30 text-xs">●</span>
+            <span class="text-white/40 text-xs">Bioinformatics</span>
+          </div>
+
+          <!-- Title -->
+          <h3 class="font-grotesk font-bold text-2xl md:text-3xl text-white mb-4 group-hover:text-teal-400 transition-colors duration-300">
+            CRISPR Guide RNA Visualizer
+          </h3>
+
+          <!-- Description -->
+          <p class="text-white/55 text-base leading-relaxed mb-7">
+            Paste any DNA sequence and instantly discover all CRISPR-Cas9 cut sites. Visualize PAM sequences, guide RNAs (20nt), and cut positions with color-coded highlights on both forward and reverse complement strands.
+          </p>
+
+          <!-- Feature list -->
+          <ul class="space-y-3 mb-8">
+            <li class="flex items-center gap-3 text-sm text-white/60">
+              <span class="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0" style="background:rgba(0,194,203,0.12);">
+                <svg class="w-3 h-3 text-teal-500" fill="none" stroke="#00C2CB" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+              </span>
+              Scan both strands (forward &amp; reverse complement)
+            </li>
+            <li class="flex items-center gap-3 text-sm text-white/60">
+              <span class="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0" style="background:rgba(0,194,203,0.12);">
+                <svg class="w-3 h-3 text-teal-500" fill="none" stroke="#00C2CB" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+              </span>
+              Color-coded PAM sites &amp; cut locations
+            </li>
+            <li class="flex items-center gap-3 text-sm text-white/60">
+              <span class="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0" style="background:rgba(0,194,203,0.12);">
+                <svg class="w-3 h-3 text-teal-500" fill="none" stroke="#00C2CB" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+              </span>
+              Detailed guide RNA table with GC content %
+            </li>
+          </ul>
+
+          <!-- CTA Link -->
+          <div class="flex items-center gap-2 text-teal-500 font-semibold text-sm group-hover:gap-4 transition-all duration-300 font-grotesk">
+            <span>Launch Visualizer</span>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+            </svg>
+          </div>
+        </a>
+
+
+        <!-- Card 2: Clinical Trial Finder -->
+        <a href="trials.html" id="card-trials" class="card-glow rounded-2xl p-8 md:p-10 block group focus:outline-none focus:ring-2 focus:ring-teal-500/50" role="article">
+
+          <!-- Icon -->
+          <div class="icon-container w-16 h-16 rounded-2xl flex items-center justify-center mb-7" style="background: linear-gradient(135deg, rgba(0,194,203,0.15), rgba(0,194,203,0.05)); border: 1px solid rgba(0,194,203,0.25);">
+            <!-- Globe Icon -->
+            <svg class="w-9 h-9" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="20" cy="20" r="14" stroke="#00C2CB" stroke-width="2.5"/>
+              <ellipse cx="20" cy="20" rx="6" ry="14" stroke="#00E5ED" stroke-width="2" opacity="0.7"/>
+              <line x1="6" y1="20" x2="34" y2="20" stroke="#00C2CB" stroke-width="2" opacity="0.6"/>
+              <path d="M8 14 Q20 18 32 14" stroke="#00C2CB" stroke-width="1.5" fill="none" opacity="0.5"/>
+              <path d="M8 26 Q20 22 32 26" stroke="#00C2CB" stroke-width="1.5" fill="none" opacity="0.5"/>
+              <circle cx="20" cy="20" r="2.5" fill="#00C2CB"/>
+            </svg>
+          </div>
+
+          <!-- Tag -->
+          <div class="flex items-center gap-2 mb-4">
+            <span class="px-3 py-1 text-xs font-bold rounded-full font-grotesk tracking-wider" style="background:rgba(0,194,203,0.12); color:#00C2CB; border:1px solid rgba(0,194,203,0.25);">TRIALS TOOL</span>
+            <span class="text-white/30 text-xs">●</span>
+            <span class="text-white/40 text-xs">ClinicalTrials.gov API</span>
+          </div>
+
+          <!-- Title -->
+          <h3 class="font-grotesk font-bold text-2xl md:text-3xl text-white mb-4 group-hover:text-teal-400 transition-colors duration-300">
+            Clinical Trial Finder
+          </h3>
+
+          <!-- Description -->
+          <p class="text-white/55 text-base leading-relaxed mb-7">
+            Search 500,000+ real clinical trials from ClinicalTrials.gov. Filter by disease, recruitment status, trial phase, and country. View full trial details, eligibility criteria, and direct links to official records — all in real time.
+          </p>
+
+          <!-- Feature list -->
+          <ul class="space-y-3 mb-8">
+            <li class="flex items-center gap-3 text-sm text-white/60">
+              <span class="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0" style="background:rgba(0,194,203,0.12);">
+                <svg class="w-3 h-3" fill="none" stroke="#00C2CB" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+              </span>
+              Live data from ClinicalTrials.gov v2 API
+            </li>
+            <li class="flex items-center gap-3 text-sm text-white/60">
+              <span class="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0" style="background:rgba(0,194,203,0.12);">
+                <svg class="w-3 h-3" fill="none" stroke="#00C2CB" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+              </span>
+              Filter by status, phase &amp; country
+            </li>
+            <li class="flex items-center gap-3 text-sm text-white/60">
+              <span class="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0" style="background:rgba(0,194,203,0.12);">
+                <svg class="w-3 h-3" fill="none" stroke="#00C2CB" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+              </span>
+              Full trial details, eligibility &amp; direct links
+            </li>
+          </ul>
+
+          <!-- CTA Link -->
+          <div class="flex items-center gap-2 text-teal-500 font-semibold text-sm group-hover:gap-4 transition-all duration-300 font-grotesk">
+            <span>Search Trials</span>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+            </svg>
+          </div>
+        </a>
+
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ============================================================
+       DISCLAIMER BANNER
+  ============================================================ -->
+  <section class="py-8 px-4">
+    <div class="max-w-4xl mx-auto reveal">
+      <div class="rounded-2xl border border-yellow-500/20 px-6 py-5 flex items-start gap-4" style="background: rgba(250,204,21,0.04);">
+        <svg class="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+        </svg>
+        <p class="text-white/45 text-sm leading-relaxed">
+          <span class="text-yellow-400/80 font-semibold">Educational Use Only:</span> This platform is for educational and research purposes only. Not a substitute for professional medical advice. Clinical trial data sourced from ClinicalTrials.gov. CRISPR analysis is for learning — consult a researcher for actual experiments.
+        </p>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ============================================================
+       FOOTER
+  ============================================================ -->
+  <footer id="footer" class="border-t border-white/5 mt-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div class="flex flex-col md:flex-row items-center justify-between gap-6">
+
+        <!-- Logo -->
+        <a href="index.html" class="flex items-center gap-2 group">
+          <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-7 h-7 opacity-80 group-hover:opacity-100 transition-opacity">
+            <circle cx="18" cy="18" r="17" stroke="#00C2CB" stroke-width="1.5" stroke-dasharray="3 2" opacity="0.4"/>
+            <path d="M11 8 C11 8, 25 12, 25 18 C25 24, 11 28, 11 28" stroke="#00C2CB" stroke-width="2" stroke-linecap="round" fill="none"/>
+            <path d="M25 8 C25 8, 11 12, 11 18 C11 24, 25 28, 25 28" stroke="#00E5ED" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.7"/>
+            <line x1="12.5" y1="12.5" x2="23.5" y2="14.5" stroke="#00C2CB" stroke-width="1.5" opacity="0.5"/>
+            <line x1="12.5" y1="18" x2="23.5" y2="18" stroke="#00C2CB" stroke-width="1.5" opacity="0.7"/>
+            <line x1="12.5" y1="23.5" x2="23.5" y2="21.5" stroke="#00C2CB" stroke-width="1.5" opacity="0.5"/>
+          </svg>
+          <span class="font-grotesk font-semibold text-sm">
+            <span class="text-teal-gradient">CrisTrial</span>
+            <span class="text-white/60 ml-1">BioVault</span>
+          </span>
+        </a>
+
+        <!-- Footer Text -->
+        <div class="text-center">
+          <p class="text-white/35 text-sm font-inter">
+            Built by <span class="text-teal-500/80 font-medium">BTech Biotech Student</span>
+            &nbsp;|&nbsp;
+            <span class="text-white/50 font-medium">SinghAkashh</span>
+            &nbsp;|&nbsp;
+            <span class="text-white/40">2026</span>
+            &nbsp;|&nbsp;
+            <span class="text-white/35">MIT License</span>
+          </p>
+        </div>
+
+        <!-- Footer Links -->
+        <div class="flex items-center gap-6">
+          <a href="crispr.html" class="text-white/35 hover:text-teal-500 text-sm transition-colors duration-200 font-inter">CRISPR Tool</a>
+          <a href="trials.html" class="text-white/35 hover:text-teal-500 text-sm transition-colors duration-200 font-inter">Trials Finder</a>
+          <a href="https://clinicaltrials.gov" target="_blank" rel="noopener noreferrer" class="text-white/35 hover:text-teal-500 text-sm transition-colors duration-200 font-inter flex items-center gap-1">
+            ClinicalTrials.gov
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+            </svg>
+          </a>
+        </div>
+      </div>
+
+      <!-- Bottom line -->
+      <div class="mt-8 pt-6 border-t border-white/5 text-center">
+        <p class="text-white/20 text-xs font-inter">
+          © 2026 CrisTrial BioVault. Data sourced from ClinicalTrials.gov (U.S. National Library of Medicine). For educational use only.
+        </p>
+      </div>
+    </div>
+  </footer>
+
+
+  <!-- ============================================================
+       JAVASCRIPT
+  ============================================================ -->
+  <script>
+    // ── Hamburger menu toggle ──────────────────────────────────────
+    const hamburgerBtn = document.getElementById('hamburger-btn');
+    const mobileMenu = document.getElementById('mobile-menu');
+    const hamLine1 = document.getElementById('ham-line-1');
+    const hamLine2 = document.getElementById('ham-line-2');
+    const hamLine3 = document.getElementById('ham-line-3');
+    let menuOpen = false;
+
+    hamburgerBtn.addEventListener('click', () => {
+      menuOpen = !menuOpen;
+      mobileMenu.classList.toggle('open', menuOpen);
+
+      if (menuOpen) {
+        hamLine1.style.transform = 'translateY(8px) rotate(45deg)';
+        hamLine2.style.transform = 'translateY(-8px) rotate(-45deg)';
+        hamLine3.style.opacity = '0';
+      } else {
+        hamLine1.style.transform = '';
+        hamLine2.style.transform = '';
+        hamLine3.style.opacity = '1';
+      }
+    });
+
+    // Close menu on link click
+    mobileMenu.querySelectorAll('a').forEach(link => {
+      link.addEventListener('click', () => {
+        menuOpen = false;
+        mobileMenu.classList.remove('open');
+        hamLine1.style.transform = '';
+        hamLine2.style.transform = '';
+        hamLine3.style.opacity = '1';
+      });
+    });
+
+
+    // ── Navbar scroll shadow ──────────────────────────────────────
+    const navbar = document.getElementById('navbar');
+    window.addEventListener('scroll', () => {
+      if (window.scrollY > 20) {
+        navbar.style.boxShadow = '0 4px 30px rgba(0,0,0,0.4)';
+        navbar.style.borderBottomColor = 'rgba(0,194,203,0.15)';
+      } else {
+        navbar.style.boxShadow = '';
+        navbar.style.borderBottomColor = 'rgba(0,194,203,0.1)';
+      }
+    });
+
+
+    // ── Intersection Observer for scroll reveals ──────────────────
+    const revealEls = document.querySelectorAll('.reveal, .reveal-left, .reveal-right');
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry, i) => {
+        if (entry.isIntersecting) {
+          // Stagger siblings within the same parent
+          setTimeout(() => {
+            entry.target.classList.add('visible');
+          }, 0);
+          observer.unobserve(entry.target);
+        }
+      });
+    }, {
+      threshold: 0.12,
+      rootMargin: '0px 0px -60px 0px',
+    });
+
+    revealEls.forEach(el => observer.observe(el));
+
+
+    // ── Stagger children of feature cards ────────────────────────
+    // Small ripple on stat items
+    document.querySelectorAll('.stat-item').forEach((item, idx) => {
+      item.style.transitionDelay = `${idx * 80}ms`;
+    });
+  </script>
+
+</body>
+</html>

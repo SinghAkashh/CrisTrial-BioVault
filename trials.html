@@ -1,0 +1,1196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Clinical Trial Finder — CrisTrial BioVault</title>
+  <meta name="description" content="Search 500,000+ clinical trials worldwide from ClinicalTrials.gov. Filter by status, phase, and more. Free, no login required." />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            navy: { 900: '#08131E', 800: '#0D1B2A', 700: '#112233', 600: '#162840' },
+            teal: { 400: '#00E5ED', 500: '#00C2CB', 600: '#00A8B0' },
+          },
+          fontFamily: {
+            grotesk: ['Space Grotesk', 'sans-serif'],
+            inter:   ['Inter', 'sans-serif'],
+            mono:    ['JetBrains Mono', 'monospace'],
+          },
+          animation: {
+            'float':      'float 6s ease-in-out infinite',
+            'pulse-slow': 'pulse 4s cubic-bezier(0.4,0,0.6,1) infinite',
+            'fade-up':    'fadeUp 0.4s ease-out forwards',
+            'spin-fast':  'spin 0.8s linear infinite',
+          },
+          keyframes: {
+            float:   { '0%,100%': { transform:'translateY(0)' }, '50%': { transform:'translateY(-10px)' } },
+            fadeUp:  { '0%': { opacity:'0', transform:'translateY(16px)' }, '100%': { opacity:'1', transform:'translateY(0)' } },
+          },
+        },
+      },
+    }
+  </script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      background-color: #08131E;
+      font-family: 'Inter', sans-serif;
+      color: #fff;
+      overflow-x: hidden;
+    }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar        { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track  { background: #08131E; }
+    ::-webkit-scrollbar-thumb  { background: #00C2CB; border-radius: 3px; }
+
+    /* ── Navbar ── */
+    .navbar-glass {
+      background: rgba(8,19,30,0.9);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(0,194,203,0.12);
+    }
+
+    /* ── Teal gradient text ── */
+    .text-teal-grad {
+      background: linear-gradient(135deg, #00E5ED, #00C2CB);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* ── Panels ── */
+    .panel {
+      background: linear-gradient(135deg, #0D1B2A 0%, #112233 100%);
+      border: 1px solid rgba(0,194,203,0.14);
+      border-radius: 1.25rem;
+    }
+
+    /* ── Search bar ── */
+    .search-input {
+      background: rgba(8,19,30,0.8);
+      border: 1.5px solid rgba(0,194,203,0.2);
+      color: #fff;
+      transition: border-color 0.3s, box-shadow 0.3s;
+      caret-color: #00C2CB;
+    }
+    .search-input:focus {
+      outline: none;
+      border-color: #00C2CB;
+      box-shadow: 0 0 0 3px rgba(0,194,203,0.12);
+    }
+    .search-input::placeholder { color: rgba(255,255,255,0.25); }
+
+    /* ── Select / Filter ── */
+    .filter-select {
+      background: #0D1B2A;
+      border: 1px solid rgba(0,194,203,0.18);
+      color: rgba(255,255,255,0.7);
+      cursor: pointer;
+      transition: border-color 0.2s;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%2300C2CB' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.75rem center;
+      padding-right: 2.25rem;
+    }
+    .filter-select:focus {
+      outline: none;
+      border-color: #00C2CB;
+    }
+    .filter-select option { background: #0D1B2A; }
+
+    /* ── Buttons ── */
+    .btn-teal {
+      background: linear-gradient(135deg, #00C2CB, #00A8B0);
+      color: #08131E;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      border: none;
+    }
+    .btn-teal:hover  { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(0,194,203,0.4); }
+    .btn-teal:active { transform: translateY(0); }
+    .btn-teal:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .btn-outline-teal {
+      background: transparent;
+      border: 1.5px solid rgba(0,194,203,0.35);
+      color: #00C2CB;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-outline-teal:hover { background: rgba(0,194,203,0.09); border-color: #00C2CB; transform: translateY(-1px); }
+
+    /* ── Quick chips ── */
+    .chip {
+      background: rgba(0,194,203,0.08);
+      border: 1px solid rgba(0,194,203,0.2);
+      color: rgba(255,255,255,0.55);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+    .chip:hover, .chip.active {
+      background: rgba(0,194,203,0.18);
+      border-color: #00C2CB;
+      color: #00C2CB;
+    }
+
+    /* ── Trial cards ── */
+    .trial-card {
+      background: linear-gradient(135deg, #0D1B2A 0%, #112233 100%);
+      border: 1px solid rgba(0,194,203,0.12);
+      border-radius: 1rem;
+      transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .trial-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(0,194,203,0.3), transparent);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .trial-card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(0,194,203,0.35);
+      box-shadow: 0 16px 48px rgba(0,0,0,0.35), 0 0 0 1px rgba(0,194,203,0.08);
+    }
+    .trial-card:hover::before { opacity: 1; }
+
+    /* ── Status badges ── */
+    .badge { display: inline-flex; align-items: center; gap: 5px; border-radius: 99px; font-weight: 600; font-size: 0.68rem; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 10px; font-family: 'Space Grotesk', sans-serif; white-space: nowrap; }
+    .badge-recruiting      { background: rgba(34,197,94,0.12); color: #22c55e; border: 1px solid rgba(34,197,94,0.3); }
+    .badge-completed       { background: rgba(148,163,184,0.1); color: #94a3b8; border: 1px solid rgba(148,163,184,0.2); }
+    .badge-not-recruiting  { background: rgba(250,204,21,0.1); color: #facc15; border: 1px solid rgba(250,204,21,0.25); }
+    .badge-active          { background: rgba(0,194,203,0.1); color: #00C2CB; border: 1px solid rgba(0,194,203,0.3); }
+    .badge-unknown         { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.4); border: 1px solid rgba(255,255,255,0.1); }
+    .badge-phase           { background: rgba(77,106,255,0.1); color: #818cf8; border: 1px solid rgba(77,106,255,0.2); font-size: 0.65rem; }
+
+    /* ── Loading spinner ── */
+    .spinner {
+      width: 40px; height: 40px;
+      border: 3px solid rgba(0,194,203,0.15);
+      border-top-color: #00C2CB;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Skeleton loader ── */
+    .skeleton {
+      background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s ease infinite;
+      border-radius: 0.5rem;
+    }
+    @keyframes shimmer { to { background-position: -200% 0; } }
+
+    /* ── Modal ── */
+    #modal-backdrop {
+      background: rgba(4,10,18,0.85);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+    .modal-box {
+      background: linear-gradient(160deg, #0D1B2A 0%, #112233 100%);
+      border: 1px solid rgba(0,194,203,0.18);
+      max-height: 90vh;
+    }
+    .modal-scroll { overflow-y: auto; max-height: calc(90vh - 140px); }
+    .modal-scroll::-webkit-scrollbar { width: 4px; }
+    .modal-scroll::-webkit-scrollbar-thumb { background: rgba(0,194,203,0.4); border-radius: 2px; }
+
+    /* ── Nav link underline ── */
+    .nav-link { position: relative; }
+    .nav-link::after {
+      content: '';
+      position: absolute;
+      bottom: -4px; left: 0;
+      width: 0; height: 2px;
+      background: linear-gradient(90deg,#00C2CB,#00E5ED);
+      transition: width 0.3s; border-radius: 2px;
+    }
+    .nav-link:hover::after { width: 100%; }
+
+    /* ── Particle ── */
+    .particle {
+      position: absolute; border-radius: 50%;
+      background: rgba(0,194,203,0.1);
+      animation: float 6s ease-in-out infinite;
+      pointer-events: none;
+    }
+
+    /* ── Fade-in ── */
+    .fade-in  { animation: fadeUp 0.4s ease-out both; }
+
+    /* ── Result count tag ── */
+    .result-tag {
+      background: rgba(0,194,203,0.08);
+      border: 1px solid rgba(0,194,203,0.18);
+      color: #00C2CB;
+      border-radius: 0.5rem;
+      padding: 0.25rem 0.75rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      font-family: 'Space Grotesk', sans-serif;
+    }
+
+    /* ── View details button in card ── */
+    .btn-details {
+      background: rgba(0,194,203,0.1);
+      border: 1px solid rgba(0,194,203,0.25);
+      color: #00C2CB;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 600;
+    }
+    .btn-details:hover { background: rgba(0,194,203,0.2); border-color: #00C2CB; }
+
+    /* ── Section divider inside modal ── */
+    .modal-section { border-top: 1px solid rgba(255,255,255,0.06); padding-top: 1.25rem; margin-top: 1.25rem; }
+    .modal-label { color: #00C2CB; font-family: 'Space Grotesk',sans-serif; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 0.5rem; }
+    .modal-value { color: rgba(255,255,255,0.65); font-size: 0.875rem; line-height: 1.65; }
+
+    /* ── Empty / error states ── */
+    .state-icon { width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.25rem; }
+
+    /* ── Transition for modal ── */
+    #modal-backdrop { transition: opacity 0.25s ease; }
+    .modal-box { transition: transform 0.3s ease, opacity 0.25s ease; }
+
+    /* ── Responsive cards grid ── */
+    #cards-grid {
+      display: grid;
+      gap: 1.25rem;
+      grid-template-columns: 1fr;
+    }
+    @media (min-width: 768px) {
+      #cards-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (min-width: 1280px) {
+      #cards-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+  </style>
+</head>
+
+<body class="bg-navy-900 min-h-screen">
+
+  <!-- ══════════════════════════════════════════════════════════════
+       NAVBAR
+  ══════════════════════════════════════════════════════════════ -->
+  <nav class="navbar-glass fixed top-0 left-0 right-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+
+        <!-- Logo -->
+        <a href="index.html" id="logo-link" class="flex items-center gap-2.5 group flex-shrink-0">
+          <svg viewBox="0 0 36 36" fill="none" class="w-8 h-8 flex-shrink-0">
+            <circle cx="18" cy="18" r="17" stroke="#00C2CB" stroke-width="1.5" stroke-dasharray="3 2" opacity="0.5"/>
+            <path d="M11 8C11 8 25 12 25 18C25 24 11 28 11 28" stroke="#00C2CB" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+            <path d="M25 8C25 8 11 12 11 18C11 24 25 28 25 28" stroke="#00E5ED" stroke-width="2.2" stroke-linecap="round" fill="none" opacity="0.7"/>
+            <line x1="12.5" y1="12.5" x2="23.5" y2="14.5" stroke="#00C2CB" stroke-width="1.5" opacity="0.6"/>
+            <line x1="12.5" y1="18" x2="23.5" y2="18" stroke="#00C2CB" stroke-width="1.5" opacity="0.8"/>
+            <line x1="12.5" y1="23.5" x2="23.5" y2="21.5" stroke="#00C2CB" stroke-width="1.5" opacity="0.6"/>
+          </svg>
+          <span class="font-grotesk font-bold text-base md:text-lg leading-tight">
+            <span class="text-teal-grad">CrisTrial</span>
+            <span class="text-white ml-1">BioVault</span>
+          </span>
+        </a>
+
+        <!-- Right nav -->
+        <div class="flex items-center gap-4 md:gap-6">
+          <a href="crispr.html" id="nav-crispr" class="nav-link hidden sm:inline text-sm font-medium text-white/55 hover:text-teal-500 transition-colors duration-200 font-inter">CRISPR Tool</a>
+          <a href="index.html" id="nav-home-btn" class="flex items-center gap-1.5 text-sm font-medium text-white/50 hover:text-white transition-colors font-inter group">
+            <svg class="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+            </svg>
+            <span class="hidden sm:inline">Back to Home</span>
+            <span class="sm:hidden">Home</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+
+  <!-- ══════════════════════════════════════════════════════════════
+       PAGE HEADER
+  ══════════════════════════════════════════════════════════════ -->
+  <header class="relative pt-24 pb-10 md:pt-28 md:pb-12 overflow-hidden">
+    <div class="absolute inset-0 pointer-events-none" aria-hidden="true">
+      <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[280px] rounded-full opacity-15" style="background:radial-gradient(ellipse,#00C2CB 0%,transparent 70%);filter:blur(60px);"></div>
+      <div class="particle w-3 h-3" style="top:25%;left:6%;animation-delay:0s;"></div>
+      <div class="particle w-2 h-2" style="top:65%;left:94%;animation-delay:2s;animation-duration:8s;"></div>
+    </div>
+
+    <div class="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <!-- Badge -->
+      <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border mb-6" style="border-color:rgba(0,194,203,0.3);background:rgba(0,194,203,0.06);">
+        <span class="w-2 h-2 rounded-full animate-pulse-slow" style="background:#00C2CB;"></span>
+        <span class="text-xs font-bold tracking-widest uppercase font-grotesk" style="color:#00C2CB;">Live · ClinicalTrials.gov API</span>
+      </div>
+
+      <h1 class="font-grotesk font-bold text-3xl sm:text-4xl md:text-5xl text-white mb-4 leading-tight">
+        Clinical <span class="text-teal-grad">Trial Finder</span>
+      </h1>
+      <p class="text-white/50 text-base md:text-lg max-w-2xl mx-auto leading-relaxed">
+        Search <strong class="text-white/75">500,000+</strong> real clinical trials from the U.S. National Library of Medicine.
+        Filter by status, phase, and condition — updated in real time.
+      </p>
+    </div>
+  </header>
+
+
+  <!-- ══════════════════════════════════════════════════════════════
+       SEARCH + FILTERS
+  ══════════════════════════════════════════════════════════════ -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-24 space-y-6">
+
+    <!-- Search Panel -->
+    <section class="panel p-5 md:p-7">
+
+      <!-- Search bar row -->
+      <div class="flex gap-3">
+        <div class="relative flex-1">
+          <!-- Search icon -->
+          <div class="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
+            <svg class="w-5 h-5 text-white/25" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+          </div>
+          <input
+            id="search-input"
+            type="text"
+            class="search-input w-full rounded-xl pl-12 pr-4 py-3.5 text-sm md:text-base font-inter"
+            placeholder="Type a disease or condition (e.g. diabetes, cancer...)"
+            autocomplete="off"
+            spellcheck="false"
+            aria-label="Search clinical trials by disease or condition"
+          />
+        </div>
+        <button id="btn-search" class="btn-teal flex-shrink-0 flex items-center gap-2 px-5 md:px-7 py-3.5 rounded-xl text-sm font-grotesk font-bold">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          </svg>
+          <span class="hidden sm:inline">Search</span>
+        </button>
+      </div>
+
+      <!-- Quick chips -->
+      <div class="flex flex-wrap gap-2 mt-4">
+        <span class="text-xs text-white/30 font-inter self-center mr-1 flex-shrink-0">Quick search:</span>
+        <button class="chip text-xs font-semibold px-3.5 py-1.5 rounded-full font-inter" data-term="Cancer" onclick="chipSearch(this)">🎗️ Cancer</button>
+        <button class="chip text-xs font-semibold px-3.5 py-1.5 rounded-full font-inter" data-term="Diabetes" onclick="chipSearch(this)">🩸 Diabetes</button>
+        <button class="chip text-xs font-semibold px-3.5 py-1.5 rounded-full font-inter" data-term="Alzheimer's" onclick="chipSearch(this)">🧠 Alzheimer's</button>
+        <button class="chip text-xs font-semibold px-3.5 py-1.5 rounded-full font-inter" data-term="Malaria" onclick="chipSearch(this)">🦟 Malaria</button>
+        <button class="chip text-xs font-semibold px-3.5 py-1.5 rounded-full font-inter" data-term="HIV" onclick="chipSearch(this)">🔴 HIV</button>
+        <button class="chip text-xs font-semibold px-3.5 py-1.5 rounded-full font-inter" data-term="Tuberculosis" onclick="chipSearch(this)">🫁 Tuberculosis</button>
+      </div>
+
+      <!-- Divider -->
+      <div class="border-t border-white/5 mt-5 pt-5">
+        <!-- Filter row -->
+        <div class="flex flex-wrap gap-3 items-center">
+          <svg class="w-4 h-4 text-white/30 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
+          </svg>
+          <span class="text-xs text-white/30 font-inter flex-shrink-0">Filters:</span>
+
+          <!-- Status -->
+          <div class="flex items-center gap-2">
+            <label class="text-xs text-white/40 font-inter whitespace-nowrap">Status</label>
+            <select id="filter-status" class="filter-select text-xs rounded-lg px-3 py-2 font-inter focus:ring-0" onchange="applyFilters()">
+              <option value="">All Statuses</option>
+              <option value="RECRUITING">Recruiting</option>
+              <option value="COMPLETED">Completed</option>
+              <option value="NOT_YET_RECRUITING">Not Yet Recruiting</option>
+              <option value="ACTIVE_NOT_RECRUITING">Active, Not Recruiting</option>
+            </select>
+          </div>
+
+          <!-- Phase -->
+          <div class="flex items-center gap-2">
+            <label class="text-xs text-white/40 font-inter whitespace-nowrap">Phase</label>
+            <select id="filter-phase" class="filter-select text-xs rounded-lg px-3 py-2 font-inter focus:ring-0" onchange="applyFilters()">
+              <option value="">All Phases</option>
+              <option value="PHASE1">Phase 1</option>
+              <option value="PHASE2">Phase 2</option>
+              <option value="PHASE3">Phase 3</option>
+              <option value="PHASE4">Phase 4</option>
+              <option value="NA">N/A</option>
+            </select>
+          </div>
+
+          <!-- Clear filters -->
+          <button id="btn-clear-filters" class="text-xs text-white/30 hover:text-teal-500 transition-colors font-inter flex items-center gap-1 ml-auto" onclick="clearFilters()">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+            Clear filters
+          </button>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ── RESULTS AREA ── -->
+    <div id="results-area">
+
+      <!-- Initial state (shown before any search) -->
+      <div id="initial-state" class="text-center py-20">
+        <div class="state-icon mx-auto mb-5" style="background:rgba(0,194,203,0.07);border:1px solid rgba(0,194,203,0.15);">
+          <svg class="w-8 h-8" fill="none" stroke="#00C2CB" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        </div>
+        <p class="font-grotesk font-semibold text-white/40 text-lg mb-2">Search Clinical Trials</p>
+        <p class="text-white/25 text-sm">Type a disease name above or pick a quick search chip to get started.</p>
+      </div>
+
+      <!-- Loading spinner -->
+      <div id="loading-state" class="hidden text-center py-20">
+        <div class="spinner mx-auto mb-5"></div>
+        <p class="text-white/40 text-sm font-inter">Searching ClinicalTrials.gov...</p>
+        <p class="text-white/20 text-xs mt-1" id="loading-label">Please wait</p>
+      </div>
+
+      <!-- Error state -->
+      <div id="error-state" class="hidden text-center py-16">
+        <div class="state-icon mx-auto mb-5" style="background:rgba(255,92,122,0.07);border:1px solid rgba(255,92,122,0.2);">
+          <svg class="w-8 h-8" fill="none" stroke="#FF5C7A" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+          </svg>
+        </div>
+        <p class="font-grotesk font-semibold text-white/50 text-lg mb-2">Could not fetch trials</p>
+        <p id="error-text" class="text-white/30 text-sm mb-5">An error occurred. Please try again.</p>
+        <button onclick="retrySearch()" class="btn-outline-teal px-5 py-2.5 rounded-xl text-sm font-grotesk font-semibold">
+          Try Again
+        </button>
+      </div>
+
+      <!-- Empty state -->
+      <div id="empty-state" class="hidden text-center py-16">
+        <div class="state-icon mx-auto mb-5" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);">
+          <svg class="w-8 h-8 text-white/25" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        </div>
+        <p class="font-grotesk font-semibold text-white/40 text-lg mb-2">No trials found</p>
+        <p class="text-white/25 text-sm">Try a different search term or remove filters.</p>
+      </div>
+
+      <!-- Results header (count + query label) -->
+      <div id="results-header" class="hidden flex flex-wrap items-center justify-between gap-3 mb-5">
+        <div class="flex items-center gap-3 flex-wrap">
+          <h2 class="font-grotesk font-bold text-white text-lg">Results</h2>
+          <span id="result-count-tag" class="result-tag"></span>
+          <span id="query-label" class="text-white/30 text-sm font-inter"></span>
+        </div>
+        <div class="flex items-center gap-2 text-xs text-white/25 font-inter">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          Data from ClinicalTrials.gov
+        </div>
+      </div>
+
+      <!-- Cards grid -->
+      <div id="cards-grid" class="hidden"></div>
+
+      <!-- Load More -->
+      <div id="load-more-wrapper" class="hidden mt-8 text-center">
+        <button id="btn-load-more" class="btn-outline-teal inline-flex items-center gap-2.5 px-8 py-3.5 rounded-xl text-sm font-grotesk font-semibold" onclick="loadMore()">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+          </svg>
+          Load More Trials
+        </button>
+        <p id="load-more-count" class="text-white/25 text-xs mt-2 font-inter"></p>
+      </div>
+
+    </div><!-- /results-area -->
+
+    <!-- Disclaimer -->
+    <div class="rounded-xl px-5 py-4 flex items-start gap-3 text-xs mt-8" style="background:rgba(0,194,203,0.05);border:1px solid rgba(0,194,203,0.15);">
+      <svg class="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" stroke="#00C2CB" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+      <span class="text-white/40">
+        <strong class="text-white/60">Disclaimer:</strong> This tool is for educational purposes only. Clinical trial data is sourced directly from
+        <a href="https://clinicaltrials.gov" target="_blank" rel="noopener noreferrer" class="text-teal-500 hover:underline">ClinicalTrials.gov</a>
+        (U.S. National Library of Medicine). Always consult a healthcare professional before participating in any trial.
+      </span>
+    </div>
+  </main>
+
+
+  <!-- ══════════════════════════════════════════════════════════════
+       FOOTER
+  ══════════════════════════════════════════════════════════════ -->
+  <footer class="border-t border-white/5">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-white/30 font-inter">
+      <span>© 2026 CrisTrial BioVault · MIT License</span>
+      <span>Built by <span class="font-medium" style="color:rgba(0,194,203,0.7);">BTech Biotech Student</span> · SinghAkashh · 2026</span>
+      <a href="index.html" class="hover:text-teal-500 transition-colors">← Back to Home</a>
+    </div>
+  </footer>
+
+
+  <!-- ══════════════════════════════════════════════════════════════
+       MODAL — Trial Details
+  ══════════════════════════════════════════════════════════════ -->
+  <div id="modal-backdrop" class="fixed inset-0 z-[100] flex items-center justify-center p-4 hidden opacity-0" onclick="handleBackdropClick(event)">
+    <div class="modal-box w-full max-w-2xl rounded-2xl shadow-2xl fade-in" onclick="event.stopPropagation()">
+      <!-- Modal header -->
+      <div class="flex items-start justify-between gap-4 p-6 pb-5 border-b border-white/6">
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2 mb-2 flex-wrap">
+            <span id="modal-status-badge" class="badge"></span>
+            <span id="modal-phase-badge" class="badge badge-phase hidden"></span>
+          </div>
+          <h3 id="modal-title" class="font-grotesk font-bold text-white text-base md:text-lg leading-snug"></h3>
+        </div>
+        <button id="modal-close" onclick="closeModal()" class="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-white/40 hover:text-white hover:bg-white/8 transition-all" aria-label="Close modal">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Modal scrollable body -->
+      <div class="modal-scroll p-6 space-y-0">
+
+        <!-- NCT ID + External link -->
+        <div class="flex flex-wrap items-center gap-3 mb-5">
+          <div>
+            <div class="modal-label">NCT ID</div>
+            <span id="modal-nct" class="font-mono text-sm text-white/70"></span>
+          </div>
+          <a id="modal-ext-link" href="#" target="_blank" rel="noopener noreferrer"
+            class="ml-auto inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-grotesk font-bold btn-details">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+            </svg>
+            View on ClinicalTrials.gov
+          </a>
+        </div>
+
+        <!-- Official Title -->
+        <div id="modal-official-title-wrap" class="modal-section hidden">
+          <div class="modal-label">Official Title</div>
+          <p id="modal-official-title" class="modal-value"></p>
+        </div>
+
+        <!-- Summary -->
+        <div id="modal-summary-wrap" class="modal-section hidden">
+          <div class="modal-label">Brief Summary</div>
+          <p id="modal-summary" class="modal-value"></p>
+        </div>
+
+        <!-- Key details row -->
+        <div class="modal-section grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div>
+            <div class="modal-label">Start Date</div>
+            <p id="modal-start" class="modal-value text-sm"></p>
+          </div>
+          <div>
+            <div class="modal-label">Min Age</div>
+            <p id="modal-min-age" class="modal-value text-sm"></p>
+          </div>
+          <div>
+            <div class="modal-label">Max Age</div>
+            <p id="modal-max-age" class="modal-value text-sm"></p>
+          </div>
+          <div>
+            <div class="modal-label">Sex</div>
+            <p id="modal-sex" class="modal-value text-sm"></p>
+          </div>
+        </div>
+
+        <!-- Eligibility -->
+        <div id="modal-elig-wrap" class="modal-section hidden">
+          <div class="modal-label">Eligibility Criteria</div>
+          <div id="modal-eligibility" class="modal-value text-xs leading-relaxed whitespace-pre-wrap max-h-52 overflow-y-auto pr-1" style="scrollbar-width:thin;"></div>
+        </div>
+
+        <!-- Conditions -->
+        <div id="modal-cond-wrap" class="modal-section hidden">
+          <div class="modal-label">Conditions</div>
+          <div id="modal-conditions" class="flex flex-wrap gap-2"></div>
+        </div>
+
+        <!-- Locations -->
+        <div id="modal-loc-wrap" class="modal-section hidden">
+          <div class="modal-label">Locations</div>
+          <div id="modal-locations" class="space-y-1.5 max-h-48 overflow-y-auto pr-1" style="scrollbar-width:thin;"></div>
+        </div>
+
+      </div><!-- /modal-scroll -->
+    </div>
+  </div><!-- /modal-backdrop -->
+
+
+  <!-- ══════════════════════════════════════════════════════════════
+       JAVASCRIPT
+  ══════════════════════════════════════════════════════════════ -->
+  <script>
+    'use strict';
+
+    // ── API config ────────────────────────────────────────────────
+    const API_BASE = 'https://clinicaltrials.gov/api/v2/studies';
+    const PAGE_SIZE = 20;
+
+    // ── App state ─────────────────────────────────────────────────
+    let appState = {
+      query:         '',
+      statusFilter:  '',
+      phaseFilter:   '',
+      nextPageToken: null,
+      allStudies:    [],
+      totalCount:    0,
+      isFetching:    false,
+    };
+
+    // ── DOM refs ──────────────────────────────────────────────────
+    const searchInput      = document.getElementById('search-input');
+    const btnSearch        = document.getElementById('btn-search');
+    const initialState     = document.getElementById('initial-state');
+    const loadingState     = document.getElementById('loading-state');
+    const errorState       = document.getElementById('error-state');
+    const emptyState       = document.getElementById('empty-state');
+    const resultsHeader    = document.getElementById('results-header');
+    const cardsGrid        = document.getElementById('cards-grid');
+    const loadMoreWrapper  = document.getElementById('load-more-wrapper');
+    const btnLoadMore      = document.getElementById('btn-load-more');
+    const loadMoreCount    = document.getElementById('load-more-count');
+    const loadingLabel     = document.getElementById('loading-label');
+    const errorText        = document.getElementById('error-text');
+    const resultCountTag   = document.getElementById('result-count-tag');
+    const queryLabel       = document.getElementById('query-label');
+
+    // ── Status helpers ────────────────────────────────────────────
+
+    /** Map API status string to display badge */
+    function getStatusBadge(status) {
+      const map = {
+        'RECRUITING':            { cls: 'badge-recruiting',     label: '● Recruiting' },
+        'COMPLETED':             { cls: 'badge-completed',      label: '● Completed' },
+        'NOT_YET_RECRUITING':    { cls: 'badge-not-recruiting', label: '● Not Yet Recruiting' },
+        'ACTIVE_NOT_RECRUITING': { cls: 'badge-active',         label: '● Active' },
+        'TERMINATED':            { cls: 'badge-unknown',        label: '● Terminated' },
+        'WITHDRAWN':             { cls: 'badge-unknown',        label: '● Withdrawn' },
+        'SUSPENDED':             { cls: 'badge-unknown',        label: '● Suspended' },
+      };
+      return map[status] || { cls: 'badge-unknown', label: '● ' + (status || 'Unknown') };
+    }
+
+    /** Format phase array to readable string */
+    function formatPhase(phases) {
+      if (!phases || phases.length === 0) return null;
+      return phases.map(p => p.replace('PHASE', 'Phase ').replace('_', ' ')).join(', ');
+    }
+
+    /** Safe string truncation */
+    function truncate(str, max) {
+      if (!str) return '—';
+      return str.length > max ? str.slice(0, max) + '…' : str;
+    }
+
+    /** Format date string */
+    function formatDate(dateStr) {
+      if (!dateStr) return '—';
+      try {
+        const d = new Date(dateStr);
+        if (isNaN(d)) return dateStr;
+        return d.toLocaleDateString('en-US', { year:'numeric', month:'short' });
+      } catch { return dateStr; }
+    }
+
+    /** Extract first location from study */
+    function getFirstLocation(study) {
+      try {
+        const locs = study.protocolSection?.contactsLocationsModule?.locations;
+        if (!locs || locs.length === 0) return null;
+        const l = locs[0];
+        const parts = [l.city, l.country].filter(Boolean);
+        return parts.join(', ');
+      } catch { return null; }
+    }
+
+    // ══ UI STATE HELPERS ═════════════════════════════════════════
+
+    function showView(name) {
+      initialState.classList.add('hidden');
+      loadingState.classList.add('hidden');
+      errorState.classList.add('hidden');
+      emptyState.classList.add('hidden');
+      resultsHeader.classList.add('hidden');
+      cardsGrid.classList.add('hidden');
+      loadMoreWrapper.classList.add('hidden');
+
+      if (name === 'initial')  initialState.classList.remove('hidden');
+      if (name === 'loading')  loadingState.classList.remove('hidden');
+      if (name === 'error')    errorState.classList.remove('hidden');
+      if (name === 'empty')    emptyState.classList.remove('hidden');
+      if (name === 'results') {
+        resultsHeader.classList.remove('hidden');
+        cardsGrid.classList.remove('hidden');
+      }
+    }
+
+    // ══ BUILD TRIAL CARD HTML ════════════════════════════════════
+
+    function buildCard(study, idx) {
+      const proto    = study.protocolSection || {};
+      const idMod    = proto.identificationModule || {};
+      const statMod  = proto.statusModule || {};
+      const descMod  = proto.descriptionModule || {};
+      const condMod  = proto.conditionsModule || {};
+      const designMod = proto.designModule || {};
+
+      const nctId    = idMod.nctId || '';
+      const title    = idMod.briefTitle || 'Untitled Trial';
+      const status   = statMod.overallStatus || '';
+      const phases   = designMod.phases;
+      const phaseTxt = formatPhase(phases);
+      const conditions = (condMod.conditions || []).slice(0, 2).join(', ') || '—';
+      const startDate = formatDate(statMod.startDateStruct?.date);
+      const location = getFirstLocation(study) || '—';
+      const summary  = truncate(descMod.briefSummary, 140);
+
+      const badge = getStatusBadge(status);
+
+      const animDelay = Math.min(idx * 60, 400);
+
+      return `
+        <article class="trial-card p-5 fade-in flex flex-col gap-4" style="animation-delay:${animDelay}ms;" data-idx="${idx}">
+
+          <!-- Header row: badges -->
+          <div class="flex items-start justify-between gap-2 flex-wrap">
+            <div class="flex flex-wrap gap-2">
+              <span class="badge ${badge.cls}">${badge.label}</span>
+              ${phaseTxt ? `<span class="badge badge-phase">${phaseTxt}</span>` : ''}
+            </div>
+            <span class="font-mono text-xs text-white/25 flex-shrink-0">${nctId}</span>
+          </div>
+
+          <!-- Title -->
+          <h3 class="font-grotesk font-semibold text-white text-sm leading-snug line-clamp-3 flex-1">
+            ${escapeHtml(title)}
+          </h3>
+
+          <!-- Summary -->
+          <p class="text-white/40 text-xs leading-relaxed line-clamp-2">${escapeHtml(summary)}</p>
+
+          <!-- Meta grid -->
+          <div class="grid grid-cols-2 gap-2.5 mt-auto">
+            <div>
+              <div class="text-white/25 text-xs mb-0.5">Condition</div>
+              <div class="text-white/60 text-xs font-medium truncate">${escapeHtml(conditions)}</div>
+            </div>
+            <div>
+              <div class="text-white/25 text-xs mb-0.5">Start Date</div>
+              <div class="text-white/60 text-xs font-medium">${escapeHtml(startDate)}</div>
+            </div>
+            <div class="col-span-2">
+              <div class="text-white/25 text-xs mb-0.5">Location</div>
+              <div class="text-white/60 text-xs font-medium flex items-center gap-1.5">
+                <svg class="w-3 h-3 flex-shrink-0 text-teal-500/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+                ${escapeHtml(location)}
+              </div>
+            </div>
+          </div>
+
+          <!-- Divider -->
+          <div class="border-t border-white/5"></div>
+
+          <!-- Action -->
+          <button class="btn-details w-full py-2.5 rounded-xl text-xs flex items-center justify-center gap-2" onclick="openModal(${idx})">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+            </svg>
+            View Details
+          </button>
+        </article>
+      `;
+    }
+
+    function escapeHtml(str) {
+      if (!str || str === '—') return str || '—';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    // ══ RENDER CARDS ═════════════════════════════════════════════
+
+    function renderCards(studies, append = false) {
+      if (!append) {
+        cardsGrid.innerHTML = '';
+      }
+      if (!studies || studies.length === 0) return;
+
+      const startIdx = append ? appState.allStudies.length - studies.length : 0;
+      const html = studies.map((s, i) => buildCard(s, startIdx + i)).join('');
+      cardsGrid.insertAdjacentHTML('beforeend', html);
+
+      // Update count tag
+      resultCountTag.textContent = appState.allStudies.length + ' shown';
+      queryLabel.textContent = `for "${appState.query}"`;
+    }
+
+    // ══ API FETCH ════════════════════════════════════════════════
+
+    async function fetchTrials(pageToken = null) {
+      if (appState.isFetching) return;
+      appState.isFetching = true;
+
+      // Build URL
+      const params = new URLSearchParams({
+        'query.cond': appState.query,
+        'pageSize':   PAGE_SIZE,
+        'format':     'json',
+      });
+      if (appState.statusFilter) params.set('filter.overallStatus', appState.statusFilter);
+      if (pageToken)              params.set('pageToken', pageToken);
+
+      const url = `${API_BASE}?${params.toString()}`;
+
+      try {
+        const res = await fetch(url, {
+          headers: { 'Accept': 'application/json' },
+        });
+
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+        }
+
+        const data = await res.json();
+        let studies = data.studies || [];
+
+        // Client-side phase filter (API doesn't filter by phase natively in v2)
+        if (appState.phaseFilter) {
+          studies = studies.filter(s => {
+            const phases = s.protocolSection?.designModule?.phases || [];
+            return phases.includes(appState.phaseFilter);
+          });
+        }
+
+        appState.nextPageToken = data.nextPageToken || null;
+        appState.totalCount    = data.totalCount || studies.length;
+
+        return studies;
+      } catch (err) {
+        throw err;
+      } finally {
+        appState.isFetching = false;
+      }
+    }
+
+    // ══ SEARCH FLOW ══════════════════════════════════════════════
+
+    async function doSearch() {
+      const q = searchInput.value.trim();
+      if (!q) {
+        searchInput.focus();
+        searchInput.style.borderColor = 'rgba(255,92,122,0.6)';
+        setTimeout(() => { searchInput.style.borderColor = ''; }, 1500);
+        return;
+      }
+
+      // Reset state
+      appState.query         = q;
+      appState.nextPageToken = null;
+      appState.allStudies    = [];
+      appState.statusFilter  = document.getElementById('filter-status').value;
+      appState.phaseFilter   = document.getElementById('filter-phase').value;
+
+      showView('loading');
+      loadingLabel.textContent = `Searching for "${q}"…`;
+
+      // Disable chips
+      setActiveChip(null);
+
+      try {
+        const studies = await fetchTrials();
+
+        if (!studies || studies.length === 0) {
+          showView('empty');
+          return;
+        }
+
+        appState.allStudies = studies;
+        showView('results');
+        renderCards(studies, false);
+
+        // Show/hide Load More
+        updateLoadMore();
+
+      } catch (err) {
+        console.error(err);
+        errorText.textContent = err.message || 'Failed to fetch data from ClinicalTrials.gov. Please check your internet connection.';
+        showView('error');
+      }
+    }
+
+    async function loadMore() {
+      if (!appState.nextPageToken || appState.isFetching) return;
+
+      btnLoadMore.disabled = true;
+      btnLoadMore.innerHTML = `
+        <span class="inline-block w-4 h-4 border-2 border-teal-500/30 border-t-teal-500 rounded-full animate-spin-fast"></span>
+        Loading…`;
+
+      try {
+        const studies = await fetchTrials(appState.nextPageToken);
+
+        if (studies && studies.length > 0) {
+          appState.allStudies = [...appState.allStudies, ...studies];
+          renderCards(studies, true);
+        }
+
+        updateLoadMore();
+      } catch (err) {
+        console.error(err);
+      } finally {
+        btnLoadMore.disabled = false;
+        btnLoadMore.innerHTML = `
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+          </svg>
+          Load More Trials`;
+      }
+    }
+
+    function updateLoadMore() {
+      if (appState.nextPageToken) {
+        loadMoreWrapper.classList.remove('hidden');
+        const remaining = Math.max(0, appState.totalCount - appState.allStudies.length);
+        loadMoreCount.textContent = remaining > 0
+          ? `${remaining.toLocaleString()} more trial${remaining !== 1 ? 's' : ''} available`
+          : '';
+      } else {
+        loadMoreWrapper.classList.add('hidden');
+      }
+    }
+
+    function retrySearch() { doSearch(); }
+
+    // ══ FILTERS ══════════════════════════════════════════════════
+
+    function applyFilters() {
+      if (appState.query) doSearch();
+    }
+
+    function clearFilters() {
+      document.getElementById('filter-status').value = '';
+      document.getElementById('filter-phase').value  = '';
+      if (appState.query) doSearch();
+    }
+
+    // ══ CHIP SEARCH ══════════════════════════════════════════════
+
+    function chipSearch(btn) {
+      const term = btn.dataset.term;
+      searchInput.value = term;
+      setActiveChip(btn);
+      doSearch();
+    }
+
+    function setActiveChip(activeEl) {
+      document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+      if (activeEl) activeEl.classList.add('active');
+    }
+
+    // ══ MODAL ════════════════════════════════════════════════════
+
+    function openModal(idx) {
+      const study = appState.allStudies[idx];
+      if (!study) return;
+
+      const proto    = study.protocolSection || {};
+      const idMod    = proto.identificationModule || {};
+      const statMod  = proto.statusModule || {};
+      const descMod  = proto.descriptionModule || {};
+      const condMod  = proto.conditionsModule || {};
+      const eligMod  = proto.eligibilityModule || {};
+      const designMod = proto.designModule || {};
+      const locMod   = proto.contactsLocationsModule || {};
+
+      const nctId    = idMod.nctId || '';
+      const title    = idMod.briefTitle || 'Untitled Trial';
+      const offTitle = idMod.officialTitle || '';
+      const status   = statMod.overallStatus || '';
+      const phases   = designMod.phases;
+      const phaseTxt = formatPhase(phases);
+
+      // Set header
+      const badge = getStatusBadge(status);
+      const statusBadgeEl = document.getElementById('modal-status-badge');
+      statusBadgeEl.className = 'badge ' + badge.cls;
+      statusBadgeEl.textContent = badge.label;
+
+      const phaseBadgeEl = document.getElementById('modal-phase-badge');
+      if (phaseTxt) {
+        phaseBadgeEl.textContent = phaseTxt;
+        phaseBadgeEl.classList.remove('hidden');
+      } else {
+        phaseBadgeEl.classList.add('hidden');
+      }
+
+      document.getElementById('modal-title').textContent = title;
+
+      // NCT + external link
+      document.getElementById('modal-nct').textContent = nctId;
+      const extLink = document.getElementById('modal-ext-link');
+      extLink.href = nctId ? `https://clinicaltrials.gov/study/${nctId}` : '#';
+
+      // Official title
+      const offWrap = document.getElementById('modal-official-title-wrap');
+      if (offTitle && offTitle !== title) {
+        document.getElementById('modal-official-title').textContent = offTitle;
+        offWrap.classList.remove('hidden');
+      } else {
+        offWrap.classList.add('hidden');
+      }
+
+      // Summary
+      const sumWrap = document.getElementById('modal-summary-wrap');
+      const summary = descMod.briefSummary || '';
+      if (summary) {
+        document.getElementById('modal-summary').textContent = summary;
+        sumWrap.classList.remove('hidden');
+      } else {
+        sumWrap.classList.add('hidden');
+      }
+
+      // Key details
+      document.getElementById('modal-start').textContent   = formatDate(statMod.startDateStruct?.date) || '—';
+      document.getElementById('modal-min-age').textContent = eligMod.minimumAge || '—';
+      document.getElementById('modal-max-age').textContent = eligMod.maximumAge || '—';
+      document.getElementById('modal-sex').textContent     = eligMod.sex
+        ? eligMod.sex.charAt(0) + eligMod.sex.slice(1).toLowerCase()
+        : '—';
+
+      // Eligibility
+      const eligWrap = document.getElementById('modal-elig-wrap');
+      const elig = eligMod.eligibilityCriteria || '';
+      if (elig) {
+        document.getElementById('modal-eligibility').textContent = elig;
+        eligWrap.classList.remove('hidden');
+      } else {
+        eligWrap.classList.add('hidden');
+      }
+
+      // Conditions
+      const condWrap = document.getElementById('modal-cond-wrap');
+      const conditions = condMod.conditions || [];
+      if (conditions.length > 0) {
+        document.getElementById('modal-conditions').innerHTML = conditions
+          .map(c => `<span class="px-2.5 py-1 rounded-lg text-xs text-white/60 font-inter" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);">${escapeHtml(c)}</span>`)
+          .join('');
+        condWrap.classList.remove('hidden');
+      } else {
+        condWrap.classList.add('hidden');
+      }
+
+      // Locations
+      const locWrap = document.getElementById('modal-loc-wrap');
+      const locations = locMod.locations || [];
+      if (locations.length > 0) {
+        document.getElementById('modal-locations').innerHTML = locations
+          .slice(0, 20)
+          .map(l => {
+            const parts = [l.facility, l.city, l.state, l.country].filter(Boolean);
+            return `<div class="flex items-center gap-2 text-xs text-white/50 py-1.5 border-b border-white/4 last:border-0">
+              <svg class="w-3 h-3 flex-shrink-0 text-teal-500/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+              </svg>
+              ${escapeHtml(parts.join(', '))}
+            </div>`;
+          }).join('') + (locations.length > 20 ? `<div class="text-xs text-white/30 pt-2 text-center">... and ${locations.length - 20} more locations</div>` : '');
+        locWrap.classList.remove('hidden');
+      } else {
+        locWrap.classList.add('hidden');
+      }
+
+      // Show modal
+      const backdrop = document.getElementById('modal-backdrop');
+      backdrop.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+      requestAnimationFrame(() => {
+        backdrop.style.opacity = '1';
+      });
+    }
+
+    function closeModal() {
+      const backdrop = document.getElementById('modal-backdrop');
+      backdrop.style.opacity = '0';
+      setTimeout(() => {
+        backdrop.classList.add('hidden');
+        document.body.style.overflow = '';
+      }, 250);
+    }
+
+    function handleBackdropClick(e) {
+      if (e.target === document.getElementById('modal-backdrop')) {
+        closeModal();
+      }
+    }
+
+    // ── Escape key closes modal ───────────────────────────────────
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeModal();
+      if (e.key === 'Enter' && document.activeElement === searchInput) doSearch();
+    });
+
+    // ── Button listeners ─────────────────────────────────────────
+    btnSearch.addEventListener('click', doSearch);
+
+    searchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') doSearch();
+    });
+
+    // Remove active chip when user types manually
+    searchInput.addEventListener('input', () => {
+      setActiveChip(null);
+    });
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,1247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CRISPR Guide RNA Visualizer — CrisTrial BioVault</title>
+  <meta name="description" content="Visualize CRISPR-Cas9 guide RNAs from any DNA sequence. Scan PAM sites on forward and reverse complement strands. Color-coded results with GC content." />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            navy: { 900: '#08131E', 800: '#0D1B2A', 700: '#112233', 600: '#162840' },
+            teal: { 400: '#00E5ED', 500: '#00C2CB', 600: '#00A8B0' },
+            bio:  { green: '#00E5B0', yellow: '#FFD166', orange: '#FF9A3C', blue: '#4DA6FF', red: '#FF5C7A' },
+          },
+          fontFamily: {
+            grotesk: ['Space Grotesk', 'sans-serif'],
+            inter:   ['Inter', 'sans-serif'],
+            mono:    ['JetBrains Mono', 'monospace'],
+          },
+          animation: {
+            'float':      'float 6s ease-in-out infinite',
+            'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            'fade-up':    'fadeUp 0.5s ease-out forwards',
+            'spin-slow':  'spin 8s linear infinite',
+          },
+          keyframes: {
+            float:   { '0%,100%': { transform:'translateY(0)' }, '50%': { transform:'translateY(-12px)' } },
+            fadeUp:  { '0%': { opacity:'0', transform:'translateY(20px)' }, '100%': { opacity:'1', transform:'translateY(0)' } },
+          },
+        },
+      },
+    }
+  </script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      background-color: #08131E;
+      font-family: 'Inter', sans-serif;
+      color: #fff;
+      overflow-x: hidden;
+    }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar        { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track  { background: #08131E; }
+    ::-webkit-scrollbar-thumb  { background: #00C2CB; border-radius: 3px; }
+
+    /* ── Navbar glass ── */
+    .navbar-glass {
+      background: rgba(8,19,30,0.88);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(0,194,203,0.12);
+    }
+
+    /* ── Teal gradient text ── */
+    .text-teal-grad {
+      background: linear-gradient(135deg, #00E5ED, #00C2CB);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .text-green-grad {
+      background: linear-gradient(135deg, #00E5B0, #00C2CB);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* ── Panel ── */
+    .panel {
+      background: linear-gradient(135deg, #0D1B2A 0%, #112233 100%);
+      border: 1px solid rgba(0,194,203,0.15);
+      border-radius: 1.25rem;
+    }
+    .panel-inner {
+      background: rgba(8,19,30,0.6);
+      border: 1px solid rgba(0,194,203,0.1);
+      border-radius: 1rem;
+    }
+
+    /* ── Buttons ── */
+    .btn-teal {
+      background: linear-gradient(135deg, #00C2CB, #00A8B0);
+      color: #08131E;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.25s ease, box-shadow 0.25s ease;
+    }
+    .btn-teal:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(0,194,203,0.4);
+    }
+    .btn-teal:active { transform: translateY(0); }
+
+    .btn-outline {
+      background: transparent;
+      border: 1.5px solid rgba(0,194,203,0.4);
+      color: #00C2CB;
+      cursor: pointer;
+      transition: all 0.25s ease;
+    }
+    .btn-outline:hover {
+      background: rgba(0,194,203,0.1);
+      border-color: #00C2CB;
+      transform: translateY(-2px);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      border: 1.5px solid rgba(255,255,255,0.12);
+      color: rgba(255,255,255,0.5);
+      cursor: pointer;
+      transition: all 0.25s ease;
+    }
+    .btn-ghost:hover {
+      border-color: rgba(255,90,122,0.5);
+      color: #FF5C7A;
+      background: rgba(255,92,122,0.07);
+    }
+
+    /* ── Textarea ── */
+    .dna-textarea {
+      background: rgba(8,19,30,0.8);
+      border: 1.5px solid rgba(0,194,203,0.18);
+      color: #00E5B0;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      line-height: 1.8;
+      letter-spacing: 0.06em;
+      resize: vertical;
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+      caret-color: #00C2CB;
+    }
+    .dna-textarea:focus {
+      outline: none;
+      border-color: #00C2CB;
+      box-shadow: 0 0 0 3px rgba(0,194,203,0.12);
+    }
+    .dna-textarea::placeholder { color: rgba(0,229,176,0.3); }
+    .dna-textarea.error {
+      border-color: rgba(255,92,122,0.6);
+      box-shadow: 0 0 0 3px rgba(255,92,122,0.1);
+    }
+
+    /* ── Sequence Display ── */
+    #sequence-display {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      line-height: 2;
+      letter-spacing: 0.04em;
+      word-break: break-all;
+      white-space: pre-wrap;
+    }
+
+    /* Color spans for sequence display */
+    .nt-guide   { background: rgba(0,229,176,0.22);  color: #00E5B0;  border-radius: 2px; }
+    .nt-pam     { background: rgba(255,209,102,0.25); color: #FFD166;  border-radius: 2px; font-weight: 700; }
+    .nt-cut     { border-left: 2px solid #4DA6FF; padding-left: 1px; }
+    .nt-plain   { color: rgba(255,255,255,0.45); }
+
+    /* ── Results Table ── */
+    .results-table { width: 100%; border-collapse: collapse; }
+    .results-table th {
+      background: rgba(0,194,203,0.1);
+      color: #00C2CB;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 0.75rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid rgba(0,194,203,0.15);
+      white-space: nowrap;
+    }
+    .results-table td {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      font-size: 0.82rem;
+      vertical-align: middle;
+    }
+    .results-table tr:last-child td { border-bottom: none; }
+    .results-table tr:hover td { background: rgba(0,194,203,0.04); }
+    .results-table tr.forward-row td:first-child { border-left: 3px solid #00E5B0; }
+    .results-table tr.reverse-row td:first-child { border-left: 3px solid #4DA6FF; }
+
+    .guide-seq {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      color: #00E5B0;
+      letter-spacing: 0.05em;
+    }
+    .pam-seq {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      color: #FFD166;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+    }
+
+    /* ── Strand Badge ── */
+    .badge-forward {
+      background: rgba(0,229,176,0.12);
+      color: #00E5B0;
+      border: 1px solid rgba(0,229,176,0.3);
+    }
+    .badge-reverse {
+      background: rgba(77,166,255,0.12);
+      color: #4DA6FF;
+      border: 1px solid rgba(77,166,255,0.3);
+    }
+
+    /* ── GC Bar ── */
+    .gc-bar-track {
+      background: rgba(255,255,255,0.07);
+      border-radius: 99px;
+      height: 5px;
+      width: 60px;
+      display: inline-block;
+      vertical-align: middle;
+      overflow: hidden;
+    }
+    .gc-bar-fill {
+      height: 100%;
+      border-radius: 99px;
+      background: linear-gradient(90deg, #00E5B0, #00C2CB);
+      transition: width 0.5s ease;
+    }
+
+    /* ── Error / Info messages ── */
+    .msg-error {
+      background: rgba(255,92,122,0.08);
+      border: 1px solid rgba(255,92,122,0.3);
+      color: #FF5C7A;
+    }
+    .msg-info {
+      background: rgba(0,194,203,0.07);
+      border: 1px solid rgba(0,194,203,0.2);
+      color: rgba(255,255,255,0.6);
+    }
+    .msg-success {
+      background: rgba(0,229,176,0.07);
+      border: 1px solid rgba(0,229,176,0.2);
+      color: #00E5B0;
+    }
+
+    /* ── Legend dots ── */
+    .legend-dot-guide  { background: rgba(0,229,176,0.3); border: 2px solid #00E5B0; }
+    .legend-dot-pam    { background: rgba(255,209,102,0.3); border: 2px solid #FFD166; }
+    .legend-dot-cut    { background: transparent; border-left: 3px solid #4DA6FF; width: 6px; height: 18px; border-radius: 1px; }
+
+    /* ── Nav link ── */
+    .nav-link { position: relative; }
+    .nav-link::after {
+      content: '';
+      position: absolute;
+      bottom: -4px;
+      left: 0;
+      width: 0;
+      height: 2px;
+      background: linear-gradient(90deg, #00C2CB, #00E5ED);
+      transition: width 0.3s ease;
+      border-radius: 2px;
+    }
+    .nav-link:hover::after { width: 100%; }
+
+    /* ── Fade-in animation trigger ── */
+    .fade-in { animation: fadeUp 0.5s ease-out forwards; }
+    @keyframes fadeUp {
+      from { opacity:0; transform:translateY(16px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+
+    /* ── Copy button ── */
+    .copy-btn {
+      background: rgba(0,194,203,0.1);
+      border: 1px solid rgba(0,194,203,0.2);
+      color: #00C2CB;
+      border-radius: 0.5rem;
+      padding: 0.3rem 0.7rem;
+      font-size: 0.72rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-family: 'Space Grotesk', sans-serif;
+    }
+    .copy-btn:hover { background: rgba(0,194,203,0.2); }
+
+    /* ── Responsive table wrapper ── */
+    .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+    /* ── Info accordion ── */
+    .accordion-content {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.5s ease, opacity 0.4s ease;
+      opacity: 0;
+    }
+    .accordion-content.open {
+      max-height: 600px;
+      opacity: 1;
+    }
+    .accordion-arrow { transition: transform 0.3s ease; }
+    .accordion-arrow.open { transform: rotate(180deg); }
+
+    /* ── Particle BG ── */
+    .particle {
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(0,194,203,0.12);
+      animation: float 6s ease-in-out infinite;
+      pointer-events: none;
+    }
+
+    /* ── Tab active ── */
+    .view-tab.active {
+      background: rgba(0,194,203,0.15);
+      color: #00C2CB;
+      border-color: rgba(0,194,203,0.4);
+    }
+    .view-tab {
+      border: 1px solid rgba(255,255,255,0.08);
+      color: rgba(255,255,255,0.4);
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+    .view-tab:hover:not(.active) {
+      border-color: rgba(0,194,203,0.2);
+      color: rgba(255,255,255,0.7);
+    }
+
+    /* ── Highlight current guide on hover ── */
+    .guide-row { cursor: pointer; }
+    .guide-row:hover td { background: rgba(0,194,203,0.07) !important; }
+  </style>
+</head>
+
+<body class="bg-navy-900 min-h-screen">
+
+  <!-- ══════════════════════════════════════════════════════════════
+       NAVBAR
+  ══════════════════════════════════════════════════════════════ -->
+  <nav class="navbar-glass fixed top-0 left-0 right-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16 md:h-18">
+
+        <!-- Logo -->
+        <a href="index.html" id="logo-link" class="flex items-center gap-2.5 group">
+          <div class="w-8 h-8">
+            <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-8 h-8">
+              <circle cx="18" cy="18" r="17" stroke="#00C2CB" stroke-width="1.5" stroke-dasharray="3 2" opacity="0.5"/>
+              <path d="M11 8C11 8 25 12 25 18C25 24 11 28 11 28" stroke="#00C2CB" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+              <path d="M25 8C25 8 11 12 11 18C11 24 25 28 25 28" stroke="#00E5ED" stroke-width="2.2" stroke-linecap="round" fill="none" opacity="0.7"/>
+              <line x1="12.5" y1="12.5" x2="23.5" y2="14.5" stroke="#00C2CB" stroke-width="1.5" opacity="0.6"/>
+              <line x1="12.5" y1="18" x2="23.5" y2="18" stroke="#00C2CB" stroke-width="1.5" opacity="0.8"/>
+              <line x1="12.5" y1="23.5" x2="23.5" y2="21.5" stroke="#00C2CB" stroke-width="1.5" opacity="0.6"/>
+            </svg>
+          </div>
+          <span class="font-grotesk font-bold text-base md:text-lg leading-tight">
+            <span class="text-teal-grad">CrisTrial</span>
+            <span class="text-white ml-1">BioVault</span>
+          </span>
+        </a>
+
+        <!-- Right nav -->
+        <div class="flex items-center gap-4 md:gap-6">
+          <a href="trials.html" id="nav-trials" class="nav-link hidden sm:inline text-sm font-medium text-white/60 hover:text-teal-500 transition-colors duration-200">
+            Clinical Trials
+          </a>
+          <a href="index.html" id="nav-home-btn" class="flex items-center gap-1.5 text-sm font-medium text-white/50 hover:text-white transition-colors duration-200 font-inter group">
+            <svg class="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+            </svg>
+            <span class="hidden sm:inline">Back to Home</span>
+            <span class="sm:hidden">Home</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+
+  <!-- ══════════════════════════════════════════════════════════════
+       PAGE HEADER
+  ══════════════════════════════════════════════════════════════ -->
+  <header class="relative pt-28 pb-10 md:pt-32 md:pb-14 overflow-hidden">
+    <!-- Ambient background glow -->
+    <div class="absolute inset-0 pointer-events-none" aria-hidden="true">
+      <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[300px] rounded-full opacity-20" style="background:radial-gradient(ellipse, #00C2CB 0%, transparent 70%); filter:blur(60px);"></div>
+      <div class="particle w-3 h-3" style="top:20%;left:8%;animation-delay:0s;animation-duration:7s;"></div>
+      <div class="particle w-2 h-2" style="top:60%;left:92%;animation-delay:1.5s;animation-duration:5s;opacity:0.6;"></div>
+      <div class="particle w-4 h-4" style="top:75%;left:4%;animation-delay:3s;animation-duration:9s;opacity:0.4;"></div>
+    </div>
+
+    <div class="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <!-- Tool badge -->
+      <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-bio-green/30 bg-bio-green/8 mb-6" style="background:rgba(0,229,176,0.06);">
+        <span class="w-2 h-2 rounded-full bg-bio-green animate-pulse-slow" style="background:#00E5B0;"></span>
+        <span class="text-bio-green text-xs font-bold tracking-widest uppercase font-grotesk" style="color:#00E5B0;">CRISPR-Cas9 Tool</span>
+      </div>
+
+      <h1 class="font-grotesk font-bold text-3xl sm:text-4xl md:text-5xl text-white mb-5 leading-tight">
+        CRISPR Guide RNA
+        <span class="text-green-grad"> Visualizer</span>
+      </h1>
+      <p class="text-white/50 text-base md:text-lg max-w-2xl mx-auto leading-relaxed">
+        Paste any DNA sequence to automatically discover all <strong class="text-white/75">CRISPR-Cas9 cut sites</strong>.
+        Visualizes PAM sequences (<span class="font-mono text-bio-yellow" style="color:#FFD166;">NGG</span>), guide RNAs (<span class="font-mono" style="color:#00E5B0;">20nt</span>),
+        and cut positions on <em>both</em> strands.
+      </p>
+    </div>
+  </header>
+
+
+  <!-- ══════════════════════════════════════════════════════════════
+       MAIN CONTENT
+  ══════════════════════════════════════════════════════════════ -->
+  <main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-20 space-y-6">
+
+    <!-- ────────────────────────────────────────────────────────────
+         INPUT PANEL
+    ──────────────────────────────────────────────────────────── -->
+    <section class="panel p-6 md:p-8">
+      <div class="flex items-center justify-between mb-5">
+        <div class="flex items-center gap-3">
+          <!-- Terminal icon -->
+          <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style="background:rgba(0,194,203,0.12);border:1px solid rgba(0,194,203,0.2);">
+            <svg class="w-5 h-5" fill="none" stroke="#00C2CB" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+          </div>
+          <div>
+            <h2 class="font-grotesk font-semibold text-white text-base">DNA Sequence Input</h2>
+            <p class="text-white/35 text-xs mt-0.5">Accepts A, T, G, C characters only · Minimum 23 characters</p>
+          </div>
+        </div>
+        <!-- Character counter -->
+        <div class="text-right hidden sm:block">
+          <span id="char-count" class="font-mono text-xs text-white/30">0 nt</span>
+        </div>
+      </div>
+
+      <!-- Textarea -->
+      <div class="relative">
+        <textarea
+          id="dna-input"
+          class="dna-textarea w-full rounded-xl p-4 md:p-5 min-h-[140px] md:min-h-[160px] uppercase"
+          placeholder="ATGCGATCGATCGATCGATCGG..."
+          spellcheck="false"
+          autocomplete="off"
+          autocorrect="off"
+          autocapitalize="characters"
+          aria-label="DNA sequence input"
+        ></textarea>
+        <!-- Valid indicator -->
+        <div id="valid-indicator" class="absolute top-3 right-3 hidden items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold" style="background:rgba(0,229,176,0.12);color:#00E5B0;border:1px solid rgba(0,229,176,0.3);">
+          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+          Valid
+        </div>
+      </div>
+
+      <!-- Error message -->
+      <div id="error-msg" class="msg-error hidden mt-3 px-4 py-3 rounded-xl flex items-start gap-3 text-sm">
+        <svg class="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <span id="error-text"></span>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex flex-wrap gap-3 mt-5">
+        <button id="btn-analyze" class="btn-teal inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-grotesk font-bold">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+          </svg>
+          Analyze Sequence
+        </button>
+        <button id="btn-example" class="btn-outline inline-flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-grotesk font-semibold">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
+          </svg>
+          Load Example
+        </button>
+        <button id="btn-clear" class="btn-ghost inline-flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-grotesk font-semibold">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+          </svg>
+          Clear
+        </button>
+      </div>
+
+      <!-- Tips row -->
+      <div class="flex flex-wrap gap-4 mt-4 pt-4 border-t border-white/5 text-xs text-white/30 font-inter">
+        <span class="flex items-center gap-1.5">
+          <span class="w-1.5 h-1.5 rounded-full bg-teal-500 opacity-60"></span>
+          Paste uppercase or lowercase — auto-converted
+        </span>
+        <span class="flex items-center gap-1.5">
+          <span class="w-1.5 h-1.5 rounded-full bg-teal-500 opacity-60"></span>
+          Spaces &amp; newlines are stripped automatically
+        </span>
+        <span class="flex items-center gap-1.5">
+          <span class="w-1.5 h-1.5 rounded-full bg-teal-500 opacity-60"></span>
+          Scans both forward &amp; reverse complement strands
+        </span>
+      </div>
+    </section>
+
+
+    <!-- ────────────────────────────────────────────────────────────
+         RESULTS SECTION (hidden until analysis)
+    ──────────────────────────────────────────────────────────── -->
+    <section id="results-section" class="hidden space-y-6 fade-in">
+
+      <!-- ── Summary Stats Row ── -->
+      <div id="summary-bar" class="panel p-5 md:p-6">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div class="text-center">
+            <div id="stat-total" class="font-grotesk font-bold text-3xl md:text-4xl text-teal-grad mb-1">0</div>
+            <div class="text-white/40 text-xs font-medium">Total Guide RNAs</div>
+          </div>
+          <div class="text-center">
+            <div id="stat-forward" class="font-grotesk font-bold text-3xl md:text-4xl mb-1" style="color:#00E5B0;">0</div>
+            <div class="text-white/40 text-xs font-medium">Forward Strand</div>
+          </div>
+          <div class="text-center">
+            <div id="stat-reverse" class="font-grotesk font-bold text-3xl md:text-4xl mb-1" style="color:#4DA6FF;">0</div>
+            <div class="text-white/40 text-xs font-medium">Reverse Strand</div>
+          </div>
+          <div class="text-center">
+            <div id="stat-length" class="font-grotesk font-bold text-3xl md:text-4xl text-teal-grad mb-1">0</div>
+            <div class="text-white/40 text-xs font-medium">Sequence Length</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── View Tabs ── -->
+      <div class="flex items-center gap-2">
+        <button id="tab-visual" class="view-tab active px-5 py-2.5 rounded-xl text-sm font-grotesk font-semibold" onclick="switchTab('visual')">
+          🎨 Sequence View
+        </button>
+        <button id="tab-table" class="view-tab px-5 py-2.5 rounded-xl text-sm font-grotesk font-semibold" onclick="switchTab('table')">
+          📋 Guide RNA Table
+        </button>
+      </div>
+
+
+      <!-- ── VISUAL: Color-Highlighted Sequence ── -->
+      <div id="view-visual" class="panel p-6 md:p-8">
+        <!-- Legend -->
+        <div class="flex flex-wrap items-center gap-5 mb-6 pb-5 border-b border-white/6">
+          <span class="font-grotesk font-semibold text-white/70 text-sm">Legend:</span>
+          <div class="flex items-center gap-2">
+            <span class="inline-block w-5 h-4 rounded nt-guide"></span>
+            <span class="text-xs text-white/55">Guide RNA (20nt)</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="inline-block w-5 h-4 rounded nt-pam"></span>
+            <span class="text-xs text-white/55">PAM Site (NGG)</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="inline-block border-l-2 border-blue-400 h-4 ml-1 mr-0.5" style="border-color:#4DA6FF;"></span>
+            <span class="text-xs text-white/55">Cut Site</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-mono text-white/30">ATGC</span>
+            <span class="text-xs text-white/55">Unaffected</span>
+          </div>
+          <div class="ml-auto flex items-center gap-2">
+            <span class="text-xs text-white/30">Showing:</span>
+            <select id="strand-filter" class="bg-navy-800 border border-white/10 text-white/60 text-xs rounded-lg px-3 py-1.5 focus:outline-none focus:border-teal-500 cursor-pointer" style="background:#0D1B2A;" onchange="renderVisual()">
+              <option value="all">Both Strands</option>
+              <option value="forward">Forward Only</option>
+              <option value="reverse">Reverse Only</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Forward strand display -->
+        <div id="visual-forward-wrapper" class="mb-6">
+          <div class="flex items-center gap-2 mb-3">
+            <span class="px-2.5 py-1 rounded-md text-xs font-bold font-grotesk badge-forward">5′ → 3′ Forward</span>
+            <span class="text-white/25 text-xs">Original sequence</span>
+          </div>
+          <div class="panel-inner p-4 md:p-5 rounded-xl overflow-x-auto">
+            <div id="sequence-display-forward" class="leading-8"></div>
+          </div>
+        </div>
+
+        <!-- Reverse complement strand display -->
+        <div id="visual-reverse-wrapper">
+          <div class="flex items-center gap-2 mb-3">
+            <span class="px-2.5 py-1 rounded-md text-xs font-bold font-grotesk badge-reverse">3′ → 5′ Reverse Complement</span>
+            <span class="text-white/25 text-xs">Complementary strand (read 5′→3′ right to left)</span>
+          </div>
+          <div class="panel-inner p-4 md:p-5 rounded-xl overflow-x-auto">
+            <div id="sequence-display-reverse" class="leading-8"></div>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- ── TABLE: Guide RNA Results ── -->
+      <div id="view-table" class="panel p-6 md:p-8 hidden">
+        <!-- Table header with controls -->
+        <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+          <div>
+            <h3 class="font-grotesk font-bold text-white text-lg">All Guide RNAs</h3>
+            <p class="text-white/35 text-xs mt-0.5">Click any row to highlight in sequence view</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <!-- Filter by strand -->
+            <select id="table-strand-filter" class="bg-navy-800 border border-white/10 text-white/60 text-xs rounded-lg px-3 py-2 focus:outline-none focus:border-teal-500 cursor-pointer" style="background:#0D1B2A;" onchange="renderTable()">
+              <option value="all">All Strands</option>
+              <option value="Forward">Forward</option>
+              <option value="Reverse">Reverse</option>
+            </select>
+            <!-- Copy CSV -->
+            <button id="btn-copy-csv" class="copy-btn hidden sm:inline-flex items-center gap-1.5" onclick="copyCSV()">
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+              </svg>
+              Copy CSV
+            </button>
+          </div>
+        </div>
+
+        <div class="table-scroll rounded-xl overflow-hidden border border-white/5">
+          <table class="results-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Position</th>
+                <th>Guide RNA (20nt)</th>
+                <th>PAM</th>
+                <th>Strand</th>
+                <th>Cut Site</th>
+                <th>GC%</th>
+              </tr>
+            </thead>
+            <tbody id="results-tbody"></tbody>
+          </table>
+        </div>
+
+        <!-- No results state -->
+        <div id="no-results-msg" class="hidden text-center py-12 text-white/30 text-sm">
+          No guide RNAs found for this filter.
+        </div>
+      </div>
+
+    </section>
+
+
+    <!-- ────────────────────────────────────────────────────────────
+         WHAT IS CRISPR? — Info Accordion
+    ──────────────────────────────────────────────────────────── -->
+    <section class="panel p-6 md:p-8">
+      <button id="accordion-btn" onclick="toggleAccordion()" class="w-full flex items-center justify-between group" aria-expanded="false">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style="background:rgba(0,194,203,0.1);border:1px solid rgba(0,194,203,0.18);">
+            <svg class="w-4 h-4" fill="none" stroke="#00C2CB" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+          <span class="font-grotesk font-semibold text-white text-base group-hover:text-teal-400 transition-colors">What is CRISPR? How does this tool work?</span>
+        </div>
+        <svg id="accordion-arrow" class="accordion-arrow w-5 h-5 text-white/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+        </svg>
+      </button>
+
+      <div id="accordion-content" class="accordion-content">
+        <div class="mt-6 pt-6 border-t border-white/6 grid md:grid-cols-2 gap-6">
+          <!-- Left: What is CRISPR -->
+          <div class="space-y-4">
+            <h4 class="font-grotesk font-semibold text-teal-400 text-sm uppercase tracking-widest">What is CRISPR-Cas9?</h4>
+            <p class="text-white/50 text-sm leading-relaxed">
+              CRISPR-Cas9 is a molecular "scissors" system that can precisely cut DNA at targeted locations.
+              A <strong class="text-white/75">guide RNA (gRNA)</strong> directs the Cas9 protein to a specific
+              sequence in the genome, where it makes a double-strand break.
+            </p>
+            <p class="text-white/50 text-sm leading-relaxed">
+              The Cas9 protein requires a short motif next to the target site called the
+              <strong class="text-white/75" style="color:#FFD166;">PAM sequence (NGG)</strong> — without it,
+              Cas9 cannot bind or cut.
+            </p>
+          </div>
+
+          <!-- Right: Algorithm -->
+          <div class="space-y-4">
+            <h4 class="font-grotesk font-semibold text-teal-400 text-sm uppercase tracking-widest">Algorithm Used</h4>
+            <ol class="space-y-2 text-sm text-white/50">
+              <li class="flex gap-3">
+                <span class="text-teal-500 font-bold font-grotesk flex-shrink-0">1.</span>
+                Clean input — uppercase, remove non-ATGC characters
+              </li>
+              <li class="flex gap-3">
+                <span class="text-teal-500 font-bold font-grotesk flex-shrink-0">2.</span>
+                Scan left-to-right: find positions where <span class="font-mono text-yellow-300">[N]GG</span> appears at position i+20, i+21
+              </li>
+              <li class="flex gap-3">
+                <span class="text-teal-500 font-bold font-grotesk flex-shrink-0">3.</span>
+                Extract 20nt immediately before the PAM as the guide RNA
+              </li>
+              <li class="flex gap-3">
+                <span class="text-teal-500 font-bold font-grotesk flex-shrink-0">4.</span>
+                Cut site = between positions 17 and 18 of the guide RNA
+              </li>
+              <li class="flex gap-3">
+                <span class="text-teal-500 font-bold font-grotesk flex-shrink-0">5.</span>
+                Generate reverse complement: A↔T, G↔C, then reverse the string
+              </li>
+              <li class="flex gap-3">
+                <span class="text-teal-500 font-bold font-grotesk flex-shrink-0">6.</span>
+                Repeat scan on reverse complement strand
+              </li>
+            </ol>
+          </div>
+
+          <!-- Color code legend -->
+          <div class="md:col-span-2 pt-4 border-t border-white/5">
+            <h4 class="font-grotesk font-semibold text-teal-400 text-sm uppercase tracking-widest mb-3">Color Key</h4>
+            <div class="flex flex-wrap gap-4">
+              <div class="flex items-center gap-2">
+                <span class="inline-block w-10 h-5 rounded nt-guide text-center text-xs leading-5 font-mono" style="color:#00E5B0;">ATGC</span>
+                <span class="text-xs text-white/50">Guide RNA — 20 nucleotides used for targeting</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="inline-block w-10 h-5 rounded nt-pam text-center text-xs leading-5 font-mono" style="color:#FFD166;">NGG</span>
+                <span class="text-xs text-white/50">PAM site — required for Cas9 binding</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="inline-block border-l-2 h-5" style="border-color:#4DA6FF; margin:0 4px;"></span>
+                <span class="text-xs text-white/50">Cut site — double-strand break location</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Educational disclaimer -->
+    <div class="msg-info rounded-xl px-5 py-4 flex items-start gap-3 text-xs">
+      <svg class="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color:#00C2CB;">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+      <span class="text-white/40">
+        <strong class="text-white/60">Educational Use Only.</strong>
+        This CRISPR analysis tool is for learning and exploration. It is not a substitute for professional wet-lab analysis.
+        Always consult a qualified researcher before experimental use.
+      </span>
+    </div>
+  </main>
+
+
+  <!-- ══════════════════════════════════════════════════════════════
+       FOOTER
+  ══════════════════════════════════════════════════════════════ -->
+  <footer class="border-t border-white/5 mt-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-white/30 font-inter">
+      <span>© 2026 CrisTrial BioVault · MIT License</span>
+      <span>Built by <span class="text-teal-500/70 font-medium">BTech Biotech Student</span> · SinghAkashh · 2026</span>
+      <a href="index.html" class="hover:text-teal-500 transition-colors">← Back to Home</a>
+    </div>
+  </footer>
+
+
+  <!-- ══════════════════════════════════════════════════════════════
+       JAVASCRIPT — CRISPR LOGIC
+  ══════════════════════════════════════════════════════════════ -->
+  <script>
+    'use strict';
+
+    // ── Constants ─────────────────────────────────────────────────
+    const EXAMPLE_SEQ = 'ATGCGATCGATCGGAGGCTAGCGGAT';
+    const COMP_MAP = { A:'T', T:'A', G:'C', C:'G' };
+
+    // ── State ─────────────────────────────────────────────────────
+    let state = {
+      cleanSeq:    '',
+      revComp:     '',
+      allGuides:   [],   // [{idx, pos, guide, pam, strand, cutSite, gc}]
+      activeTab:   'visual',
+    };
+
+    // ── DOM refs ──────────────────────────────────────────────────
+    const inputEl        = document.getElementById('dna-input');
+    const charCountEl    = document.getElementById('char-count');
+    const errorEl        = document.getElementById('error-msg');
+    const errorTextEl    = document.getElementById('error-text');
+    const validEl        = document.getElementById('valid-indicator');
+    const resultsSection = document.getElementById('results-section');
+
+    // ══ UTILITY FUNCTIONS ════════════════════════════════════════
+
+    /** Clean raw input: uppercase, remove non-ATGC */
+    function cleanInput(raw) {
+      return raw.toUpperCase().replace(/[^ATGC]/g, '');
+    }
+
+    /** Reverse complement of a sequence */
+    function reverseComplement(seq) {
+      return seq.split('').reverse().map(n => COMP_MAP[n] || 'N').join('');
+    }
+
+    /** GC content as percentage (0-100) */
+    function gcContent(seq) {
+      const gc = (seq.match(/[GC]/g) || []).length;
+      return Math.round((gc / seq.length) * 100);
+    }
+
+    /** Scan a sequence for NGG PAM sites and return guide RNA objects */
+    function scanPAM(seq, strandLabel, originalSeqLength) {
+      const results = [];
+      // We need at least 20nt before the PAM, so start from index 20
+      // PAM = seq[i] + seq[i+1] + seq[i+2] where seq[i+1]=G, seq[i+2]=G
+      for (let i = 20; i <= seq.length - 3; i++) {
+        // Check PAM: position i = N (any), i+1 = G, i+2 = G
+        if (seq[i + 1] === 'G' && seq[i + 2] === 'G') {
+          const guide  = seq.slice(i - 20, i);   // 20nt before PAM
+          const pam    = seq.slice(i, i + 3);     // NGG
+          const cutPos = i - 20 + 17;             // cut between nt 17 and 18 (0-indexed: after guide[16])
+
+          // For reverse strand, the display position is relative to the original sequence
+          const displayPos = strandLabel === 'Forward'
+            ? i - 19                              // 1-based start of guide
+            : originalSeqLength - (i + 3) + 1;   // map back to original
+
+          results.push({
+            pos:     strandLabel === 'Forward' ? i - 19 : displayPos,
+            seqIdx:  i - 20,  // 0-based start index in the scanned sequence
+            guide,
+            pam,
+            strand:  strandLabel,
+            cutSite: cutPos,
+            gc:      gcContent(guide),
+          });
+        }
+      }
+      return results;
+    }
+
+    /** Show error message */
+    function showError(msg) {
+      errorTextEl.textContent = msg;
+      errorEl.classList.remove('hidden');
+      errorEl.classList.add('flex');
+      inputEl.classList.add('error');
+      validEl.classList.add('hidden');
+      validEl.classList.remove('flex');
+    }
+
+    /** Clear error */
+    function clearError() {
+      errorEl.classList.add('hidden');
+      errorEl.classList.remove('flex');
+      inputEl.classList.remove('error');
+    }
+
+    /** Show valid indicator */
+    function showValid() {
+      validEl.classList.remove('hidden');
+      validEl.classList.add('flex');
+    }
+
+    // ══ MAIN ANALYSIS ════════════════════════════════════════════
+
+    function analyze() {
+      clearError();
+
+      const raw   = inputEl.value;
+      const clean = cleanInput(raw);
+
+      // Validation
+      if (!clean) {
+        showError('Please paste a DNA sequence before analyzing.');
+        return;
+      }
+
+      // Check for invalid characters
+      const stripped = raw.toUpperCase().replace(/[\s\n\r]/g, '');
+      const invalid  = stripped.replace(/[ATGC]/g, '');
+      if (invalid.length > 0) {
+        const badChars = [...new Set(invalid.split(''))].join(', ');
+        showError(`Invalid characters found: "${badChars}". Only A, T, G, C are allowed.`);
+        return;
+      }
+
+      if (clean.length < 23) {
+        showError(`Sequence too short: ${clean.length} nt. Minimum 23 characters required (20 for guide RNA + 3 for PAM).`);
+        return;
+      }
+
+      showValid();
+
+      // Save to state
+      state.cleanSeq  = clean;
+      state.revComp   = reverseComplement(clean);
+
+      // Scan both strands
+      const fwd = scanPAM(clean, 'Forward', clean.length);
+      const rev = scanPAM(state.revComp, 'Reverse', clean.length);
+
+      // Number all guides
+      let idx = 1;
+      fwd.forEach(g => { g.idx = idx++; });
+      rev.forEach(g => { g.idx = idx++; });
+
+      state.allGuides = [...fwd, ...rev];
+
+      // Update summary stats
+      document.getElementById('stat-total').textContent   = state.allGuides.length;
+      document.getElementById('stat-forward').textContent = fwd.length;
+      document.getElementById('stat-reverse').textContent = rev.length;
+      document.getElementById('stat-length').textContent  = clean.length;
+
+      // Show results
+      resultsSection.classList.remove('hidden');
+
+      // Render both views
+      renderVisual();
+      renderTable();
+
+      // Smooth scroll to results
+      setTimeout(() => {
+        resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    }
+
+    // ══ VISUAL RENDERER ══════════════════════════════════════════
+
+    function renderVisual() {
+      const filter = document.getElementById('strand-filter').value;
+
+      const fwdWrapper = document.getElementById('visual-forward-wrapper');
+      const revWrapper = document.getElementById('visual-reverse-wrapper');
+
+      if (filter === 'reverse') {
+        fwdWrapper.classList.add('hidden');
+      } else {
+        fwdWrapper.classList.remove('hidden');
+        renderSeqDisplay('sequence-display-forward', state.cleanSeq, 'Forward');
+      }
+
+      if (filter === 'forward') {
+        revWrapper.classList.add('hidden');
+      } else {
+        revWrapper.classList.remove('hidden');
+        renderSeqDisplay('sequence-display-reverse', state.revComp, 'Reverse');
+      }
+    }
+
+    /**
+     * Render a color-coded sequence into a container element.
+     * @param {string} containerId
+     * @param {string} seq        - The sequence to display
+     * @param {string} strandType - 'Forward' | 'Reverse'
+     */
+    function renderSeqDisplay(containerId, seq, strandType) {
+      const container = document.getElementById(containerId);
+      const guides = state.allGuides.filter(g => g.strand === strandType);
+
+      // Build a per-character annotation map
+      // Each position can be: 'plain', 'guide', 'pam'
+      // Plus a separate cut map
+      const typeMap = new Array(seq.length).fill('plain');
+      const cutSet  = new Set();
+
+      guides.forEach(g => {
+        const start = g.seqIdx;
+        // Mark guide RNA chars
+        for (let i = start; i < start + 20 && i < seq.length; i++) {
+          typeMap[i] = 'guide';
+        }
+        // Mark PAM chars (3 after guide)
+        for (let i = start + 20; i < start + 23 && i < seq.length; i++) {
+          typeMap[i] = 'pam';
+        }
+        // Mark cut site (between guide position 17 and 18, i.e., after index start+16)
+        cutSet.add(start + 17);
+      });
+
+      // Build HTML — group consecutive same-type chars into spans
+      let html = '';
+      let i = 0;
+      while (i < seq.length) {
+        const t = typeMap[i];
+        let chunk = '';
+        const chunkStart = i;
+
+        // Collect chars of same type
+        while (i < seq.length && typeMap[i] === t) {
+          if (cutSet.has(i)) {
+            // Flush current chunk first
+            if (chunk) {
+              html += `<span class="nt-${t}">${chunk}</span>`;
+              chunk = '';
+            }
+            // Emit remaining chars of this same-type block with cut marker on first
+            html += `<span class="nt-${t} nt-cut">${seq[i]}</span>`;
+            i++;
+            // Continue collecting rest of block
+            while (i < seq.length && typeMap[i] === t && !cutSet.has(i)) {
+              chunk += seq[i++];
+            }
+            if (chunk) {
+              html += `<span class="nt-${t}">${chunk}</span>`;
+              chunk = '';
+            }
+            break;
+          } else {
+            chunk += seq[i++];
+          }
+        }
+        if (chunk) {
+          html += `<span class="nt-${t}">${chunk}</span>`;
+        }
+      }
+
+      // Wrap in line-wrapping div with position numbers
+      // Add position ruler every 10 bases
+      const ruler = buildRuler(seq.length);
+      container.innerHTML = ruler + '<div id="seq-' + containerId + '" class="leading-8">' + html + '</div>';
+    }
+
+    /** Build a position ruler string (every 10 bases) */
+    function buildRuler(len) {
+      if (len === 0) return '';
+      let ruler = '<div class="font-mono text-white/20 text-xs mb-1 leading-5 select-none">';
+      for (let i = 0; i < len; i++) {
+        if (i % 10 === 0) {
+          const label = String(i + 1);
+          ruler += label;
+          // Pad to 10 chars
+          ruler += '&nbsp;'.repeat(10 - label.length);
+        }
+      }
+      ruler += '</div>';
+      return ruler;
+    }
+
+    // ══ TABLE RENDERER ═══════════════════════════════════════════
+
+    function renderTable() {
+      const filter = document.getElementById('table-strand-filter').value;
+      const tbody  = document.getElementById('results-tbody');
+      const noMsg  = document.getElementById('no-results-msg');
+
+      const guides = filter === 'all'
+        ? state.allGuides
+        : state.allGuides.filter(g => g.strand === filter);
+
+      if (guides.length === 0) {
+        tbody.innerHTML = '';
+        noMsg.classList.remove('hidden');
+        return;
+      }
+      noMsg.classList.add('hidden');
+
+      // GC color: <50% = orange, 50-65% = green, >65% = teal
+      function gcColor(pct) {
+        if (pct < 40)  return '#FF9A3C';
+        if (pct < 50)  return '#FFD166';
+        if (pct <= 65) return '#00E5B0';
+        return '#00C2CB';
+      }
+
+      tbody.innerHTML = guides.map(g => {
+        const rowClass  = g.strand === 'Forward' ? 'forward-row' : 'reverse-row';
+        const badgeClass = g.strand === 'Forward' ? 'badge-forward' : 'badge-reverse';
+        const gcClr     = gcColor(g.gc);
+        const gcPct     = g.gc;
+        return `
+          <tr class="guide-row ${rowClass}" data-idx="${g.idx}" onclick="highlightGuide(${g.idx})">
+            <td class="font-mono text-white/40 text-xs">${g.idx}</td>
+            <td class="font-mono text-white/60 text-xs">${g.pos}</td>
+            <td><span class="guide-seq break-all">${formatGuideSeq(g.guide, g.cutSite - g.seqIdx)}</span></td>
+            <td><span class="pam-seq">${g.pam}</span></td>
+            <td><span class="px-2 py-0.5 rounded-md text-xs font-bold font-grotesk ${badgeClass}">${g.strand}</span></td>
+            <td class="font-mono text-xs" style="color:#4DA6FF;">↑ nt ${(g.cutSite - g.seqIdx)}</td>
+            <td>
+              <div class="flex items-center gap-2">
+                <span class="font-grotesk font-semibold text-xs" style="color:${gcClr};">${gcPct}%</span>
+                <span class="gc-bar-track">
+                  <span class="gc-bar-fill" style="width:${gcPct}%;background:linear-gradient(90deg,${gcClr},${gcClr}99);"></span>
+                </span>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    /** Format guide sequence with cut marker between positions 17 and 18 */
+    function formatGuideSeq(guide, cutLocalPos) {
+      // cutLocalPos is 0-based index in the guide where cut happens (between 16 and 17)
+      const cp = 17; // always between position 17 and 18 (1-based), so index 17
+      const before = guide.slice(0, cp);
+      const after  = guide.slice(cp);
+      return `${before}<span style="border-left:2px solid #4DA6FF;padding-left:1px;">${after}</span>`;
+    }
+
+    /** Highlight a guide in the table row */
+    function highlightGuide(idx) {
+      document.querySelectorAll('.guide-row').forEach(r => {
+        r.style.background = '';
+      });
+      const row = document.querySelector(`.guide-row[data-idx="${idx}"]`);
+      if (row) {
+        row.style.background = 'rgba(0,194,203,0.12)';
+        row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }
+
+    // ══ TAB SWITCHING ════════════════════════════════════════════
+
+    function switchTab(tab) {
+      state.activeTab = tab;
+      document.getElementById('tab-visual').classList.toggle('active', tab === 'visual');
+      document.getElementById('tab-table').classList.toggle('active', tab === 'table');
+      document.getElementById('view-visual').classList.toggle('hidden', tab !== 'visual');
+      document.getElementById('view-table').classList.toggle('hidden', tab !== 'table');
+    }
+
+    // ══ COPY CSV ═════════════════════════════════════════════════
+
+    function copyCSV() {
+      const headers = ['#', 'Position', 'Guide RNA (20nt)', 'PAM', 'Strand', 'Cut Site (nt)', 'GC%'];
+      const rows = state.allGuides.map(g => [
+        g.idx, g.pos, g.guide, g.pam, g.strand, (g.cutSite - g.seqIdx), g.gc + '%'
+      ]);
+      const csv = [headers, ...rows].map(r => r.join(',')).join('\n');
+
+      navigator.clipboard.writeText(csv).then(() => {
+        const btn = document.getElementById('btn-copy-csv');
+        const orig = btn.innerHTML;
+        btn.innerHTML = '✓ Copied!';
+        btn.style.color = '#00E5B0';
+        setTimeout(() => { btn.innerHTML = orig; btn.style.color = ''; }, 2000);
+      }).catch(() => {
+        alert('Copy failed. Please manually select the table.');
+      });
+    }
+
+    // ══ ACCORDION ════════════════════════════════════════════════
+
+    function toggleAccordion() {
+      const content = document.getElementById('accordion-content');
+      const arrow   = document.getElementById('accordion-arrow');
+      const btn     = document.getElementById('accordion-btn');
+      const isOpen  = content.classList.contains('open');
+      content.classList.toggle('open', !isOpen);
+      arrow.classList.toggle('open', !isOpen);
+      btn.setAttribute('aria-expanded', String(!isOpen));
+    }
+
+    // ══ BUTTON HANDLERS ══════════════════════════════════════════
+
+    document.getElementById('btn-analyze').addEventListener('click', analyze);
+
+    document.getElementById('btn-example').addEventListener('click', () => {
+      inputEl.value = EXAMPLE_SEQ;
+      charCountEl.textContent = EXAMPLE_SEQ.length + ' nt';
+      clearError();
+      validEl.classList.add('hidden');
+      validEl.classList.remove('flex');
+      // Trigger analyze automatically
+      setTimeout(analyze, 100);
+    });
+
+    document.getElementById('btn-clear').addEventListener('click', () => {
+      inputEl.value = '';
+      charCountEl.textContent = '0 nt';
+      clearError();
+      validEl.classList.add('hidden');
+      validEl.classList.remove('flex');
+      resultsSection.classList.add('hidden');
+      state = { cleanSeq:'', revComp:'', allGuides:[], activeTab:'visual' };
+    });
+
+    // ── Live char counter and validation on input ────────────────
+    inputEl.addEventListener('input', () => {
+      const raw   = inputEl.value;
+      const clean = cleanInput(raw);
+      charCountEl.textContent = clean.length + ' nt';
+
+      if (!raw.trim()) {
+        clearError();
+        validEl.classList.add('hidden');
+        validEl.classList.remove('flex');
+        return;
+      }
+
+      const stripped = raw.toUpperCase().replace(/[\s\n\r]/g, '');
+      const invalid  = stripped.replace(/[ATGC]/g, '');
+      if (invalid.length > 0) {
+        const badChars = [...new Set(invalid.split(''))].slice(0, 5).join(', ');
+        showError(`Invalid characters: "${badChars}". Only A, T, G, C are allowed.`);
+      } else if (clean.length < 23 && clean.length > 0) {
+        showError(`Sequence too short: ${clean.length} nt. Need at least 23 characters.`);
+      } else if (clean.length >= 23) {
+        clearError();
+        showValid();
+      }
+    });
+
+    // ── Enter key on textarea triggers analyze ───────────────────
+    inputEl.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && e.ctrlKey) {
+        e.preventDefault();
+        analyze();
+      }
+    });
+
+    // ── Uppercase transform on paste ─────────────────────────────
+    inputEl.addEventListener('paste', (e) => {
+      e.preventDefault();
+      const text = (e.clipboardData || window.clipboardData).getData('text');
+      const clean = text.toUpperCase().replace(/[^ATGC\s\n]/g, '');
+      const start = inputEl.selectionStart;
+      const end   = inputEl.selectionEnd;
+      const current = inputEl.value;
+      inputEl.value = current.slice(0, start) + clean + current.slice(end);
+      inputEl.dispatchEvent(new Event('input'));
+    });
+
+  </script>
+</body>
+</html>
